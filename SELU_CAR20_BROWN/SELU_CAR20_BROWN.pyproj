@@ -22,8 +22,17 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="BIB\bib.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="CODE\INPUT\SELU_CAR20_BROWN.py" />
     <Compile Include="CODE\OUTPUT\MODEL\model.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="CODE\OUTPUT\RESULT\result.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DOC\doc.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
