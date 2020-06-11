@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>a8f4a1f8-e2ba-4b2e-9fea-02b8d014fc59</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>SELU_CAR20_BROWN.py</StartupFile>
+    <StartupFile>CODE\INPUT\SELU_CAR20_BROWN.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,10 +22,19 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="SELU_CAR20_BROWN.py" />
+    <Compile Include="CODE\INPUT\SELU_CAR20_BROWN.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|Anaconda3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="CODE\" />
+    <Folder Include="CODE\INPUT\" />
+    <Folder Include="CODE\OUTPUT\" />
+    <Folder Include="CODE\OUTPUT\MODEL\" />
+    <Folder Include="CODE\OUTPUT\RESULT\" />
+    <Folder Include="DOC\" />
+    <Folder Include="BIB\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
