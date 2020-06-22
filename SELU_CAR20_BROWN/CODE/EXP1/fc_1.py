@@ -22,6 +22,58 @@ Distribution: Participants of SELU - CAR System -- LBRN 2020 Virtual Summer Prog
 
 ~~~~'''
 
+#Flattening Images
+import numpy as np
+
+PATH_VOI = 'SELU_CAR20_BROWN/CODE/INPUT/Voi_Data/'
+
+#VOI Data
+DataSet_xy = 'data_balanced_6Slices_1orMore_xy'
+DataSet_xz = 'data_balanced_6Slices_1orMore_xz'
+DataSet_yz = 'data_balanced_6Slices_1orMore_yz'
+
+#Flattening xy images
+f2 = open(PATH_VOI + DataSet_xy + '.bin','rb') 
+train_set_all_xy = np.load(f2)
+train_label_all_xy = np.load(f2)
+test_set_all_xy = np.load(f2)
+test_label_all_xy = np.load(f2)
+f2.close()
+
+flatImage_xy = []
+for i in range(len(train_label_all_xy)):
+    flatImage_xy.append(train_set_all_xy[i]) 
+
+print(flatImage_xy) #Shape (2520, 3136) (imgNum, imgPixels)
+
+#flattening xz images
+f3 = open(PATH_VOI + DataSet_xz + '.bin','rb') 
+train_set_all_xz = np.load(f3)
+train_label_all_xz = np.load(f3)
+test_set_all_xz = np.load(f3)
+test_label_all_xz = np.load(f3)
+f3.close()
+
+flatImage_xz = []
+for i in range(len(train_label_all_xz)):
+    flatImage_xz.append(train_set_all_xz[i]) 
+
+print(flatImage_xz) #Shape (2520, 3136) (imgNum, imgPixels)
+
+#flattening yz images
+f4 = open(PATH_VOI + DataSet_yz + '.bin','rb') 
+train_set_all_yz = np.load(f4)
+train_label_all_yz = np.load(f4)
+test_set_all_yz = np.load(f4)
+test_label_all_yz = np.load(f4)
+f4.close()
+
+flatImage_yz = []
+for i in range(len(train_label_all_yz)):
+    flatImage_yz.append(train_set_all_yz[i]) 
+
+print(flatImage_yz) #Shape (2520, 3136) (imgNum, imgPixels)
+
 '''~~~~ CLASSES ~~~~'''
 #Your class definitions
 

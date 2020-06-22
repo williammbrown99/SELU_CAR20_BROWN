@@ -31,4 +31,3 @@ for i in range(len(train_label_all_xy)):
     plt.show()
     print(i)
     plt.pause(0)
-#
