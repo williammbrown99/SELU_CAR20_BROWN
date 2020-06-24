@@ -13,3 +13,10 @@ train_label_all_xy = np.load(f2)        #training labels
 test_set_all_xy = np.load(f2)
 test_label_all_xy = np.load(f2)
 f2.close()
+
+************************************************************************************
+These lines should go under '''~~~~ TRAINING ~~~~'''
+model.fit(train_set_all_xy, train_label_all_xy, epochs=10)  #training model
+
+************************************************************************************
+If needed, you may move '''~~~~ LOAD DATA ~~~~''' and '''~~~~ PRE-PROCESS ~~~~''' before '''~~~~ MODEL SETUP ~~~~'''.
