@@ -1,0 +1,22 @@
+6/24/2020
+These lines should go under '''~~~~ LOAD DATA ~~~~'''
+
+#VOI Data
+DataSet_xy = 'data_balanced_6Slices_1orMore_xy'
+DataSet_xz = 'data_balanced_6Slices_1orMore_xz'
+DataSet_yz = 'data_balanced_6Slices_1orMore_yz'
+
+#Obtaining data
+f2 = open(PATH_VOI + DataSet_xy + '.bin','rb') 
+train_set_all_xy = np.load(f2)          #training parameter
+train_label_all_xy = np.load(f2)        #training labels
+test_set_all_xy = np.load(f2)
+test_label_all_xy = np.load(f2)
+f2.close()
+
+************************************************************************************
+These lines should go under '''~~~~ TRAINING ~~~~'''
+model.fit(train_set_all_xy, train_label_all_xy, epochs=10)  #training model
+
+************************************************************************************
+If needed, you may move '''~~~~ LOAD DATA ~~~~''' and '''~~~~ PRE-PROCESS ~~~~''' before '''~~~~ MODEL SETUP ~~~~'''.
