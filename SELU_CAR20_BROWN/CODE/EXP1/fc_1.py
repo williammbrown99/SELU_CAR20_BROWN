@@ -47,19 +47,6 @@ from tensorflow import keras
 #Use tuple simple or multi-dimensional-like for more detail settings. Add aditional constants for detail of each parameters to export.
 PATH_VOI = 'SELU_CAR20_BROWN/CODE/INPUT/Voi_Data/'
 
-#VOI Data
-DataSet_xy = 'data_balanced_6Slices_1orMore_xy'
-DataSet_xz = 'data_balanced_6Slices_1orMore_xz'
-DataSet_yz = 'data_balanced_6Slices_1orMore_yz'
-
-#Obtaining data
-f2 = open(PATH_VOI + DataSet_xy + '.bin','rb') 
-train_set_all_xy = np.load(f2)          #training parameter
-train_label_all_xy = np.load(f2)        #training labels
-test_set_all_xy = np.load(f2)
-test_label_all_xy = np.load(f2)
-f2.close()
-
 #Experiment ID
 EXP_ID = 'Exp_1'
 
@@ -83,25 +70,32 @@ OPTMZR = ('SGD')
 
 '''~~~~ MODEL SETUP ~~~~'''
 #your code to create the model
-initializer = tf.keras.initializers.RandomNormal(mean=0., stddev=1.)    #initializer, random normal 
-values = initializer(shape=(2, 2))
 
 model = keras.Sequential([
     keras.layers.Flatten(input_shape=(56, 56)), #flattening images
-    keras.layers.Dense(5, activation='sigmoid'),#hidden layer, sigmoid activation function
-    keras.layers.Dense(5, activation='selu'),   #second hidden layer, selu activation function
-    keras.layers.Dense(2, activation='relu')    #output layer, relu activation function
+    keras.layers.Dense(5, activation='sigmoid', kernel_initializer='random_normal'),    #hidden layer, sigmoid activation function
+    keras.layers.Dense(4, activation='selu', kernel_initializer='random_normal'),       #second hidden layer, selu activation function
+    keras.layers.Dense(2, activation='relu', kernel_initializer='random_normal')        #output layer, relu activation function
 ])
 
 model.compile(optimizer='SGD',                  #optimizer, Stochastic gradient descent
               loss='mean_squared_error',        #loss function, mean squared error
-              metrics=['accuracy'])             
-
-model.fit(train_set_all_xy, train_label_all_xy, epochs=10)  #training model
+              metrics=['accuracy']) 
 
 '''~~~~ LOAD DATA ~~~~'''
 #your code to load data. Export ID of each sample as 'train', 'val', 'test' as a csv and binary file sampleID.csv and sampleID.bin
+#VOI Data
+DataSet_xy = 'data_balanced_6Slices_1orMore_xy'
+DataSet_xz = 'data_balanced_6Slices_1orMore_xz'
+DataSet_yz = 'data_balanced_6Slices_1orMore_yz'
 
+#Obtaining data
+f2 = open(PATH_VOI + DataSet_xy + '.bin','rb') 
+train_set_all_xy = np.load(f2)          #training parameter
+train_label_all_xy = np.load(f2)        #training labels
+test_set_all_xy = np.load(f2)
+test_label_all_xy = np.load(f2)
+f2.close()
 
 '''~~~~ PRE-PROCESS ~~~~'''
 #your code to pre-proces data. Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin  
@@ -109,6 +103,7 @@ model.fit(train_set_all_xy, train_label_all_xy, epochs=10)  #training model
 
 '''~~~~ TRAINING ~~~~'''
 #your code to train the model. Export trained model parameters to load later as model.bin
+model.fit(train_set_all_xy, train_label_all_xy, epochs=10)  #training model
 
 
 '''~~~~ TESTING ~~~~'''
