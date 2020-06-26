@@ -1,3 +1,7 @@
+6/26/2020
+A relative path should be used: 
+CHANGE PATH_VOI = 'SELU_CAR20_BROWN/CODE/INPUT/Voi_Data/' to PATH_VOI = '../INPUT/Voi_Data/'
+***********************************************************************************
 6/24/2020
 These lines should go under '''~~~~ LOAD DATA ~~~~'''
 
