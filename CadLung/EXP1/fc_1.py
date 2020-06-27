@@ -48,7 +48,7 @@ from sklearn.metrics import confusion_matrix
 '''~~~~ PARAMETERS ~~~~'''
 ###
 #Use tuple simple or multi-dimensional-like for more detail settings. Add aditional constants for detail of each parameters to export.
-PATH_VOI = 'SELU_CAR20_BROWN/CODE/INPUT/Voi_Data/'
+PATH_VOI = 'CadLung/INPUT/Voi_Data/'
 
 #Experiment ID
 EXP_ID = 'Exp_1'
