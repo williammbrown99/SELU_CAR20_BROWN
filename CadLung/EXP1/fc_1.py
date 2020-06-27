@@ -26,6 +26,7 @@ Distribution: Participants of SELU - CAR System -- LBRN 2020 Virtual Summer Prog
 #imports
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
 
 from tensorflow import keras
 from sklearn.metrics import f1_score
@@ -131,6 +132,21 @@ print('Specificity: {}'.format(specificity))
 
 '''~~~~ VISUALIZE ~~~~'''
 #your code to visualize performance metrics. Export charts.
+plt.style.use('ggplot')
+
+x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']
+energy = [f1score, aucRoc, sensitivity, specificity]
+
+x_pos = [i for i, _ in enumerate(x)]
+
+plt.bar(x_pos, energy, color='green')
+plt.xlabel("Error Metric")
+plt.ylabel("Score")
+plt.title("Error Metrics of Model")
+
+plt.xticks(x_pos, x)
+
+plt.show()
 
 
 print('Done!')
