@@ -108,7 +108,7 @@ f2.close()
 
 '''~~~~ TRAINING ~~~~'''
 #your code to train the model. Export trained model parameters to load later as model.bin
-model.fit(train_set_all_xy, train_label_all_xy, epochs=10)   #training model
+model.fit(train_set_all_xy, train_label_all_xy, epochs=10)      #training model
 
 model.save('CadLung/EXP1/MODEL/model.h5')                       #Exporting Model as h5 file
 
@@ -118,9 +118,11 @@ model = keras.models.load_model('CadLung/EXP1/MODEL/model.h5')  #Importing Model
 
 predictions = model.predict(test_set_all_xy)                    #predicted test values (1092, 2) 2 nodes per prediction
 
+###Proccessing Model Output###
 test_pred_all_xy = []                                           #creating predictions list
 for i in range(len(test_label_all_xy)):
     test_pred_all_xy.append(np.argmax(predictions[i]))          #making prediction using the highest valued node
+#####
 
 '''~~~~ EVALUATION ~~~~'''
 #your code to evaluate performance of the model. Export performance metrics as csv and binary file performance.csv and performance.bin
@@ -163,10 +165,10 @@ performance = [f1score, aucRoc, sensitivity, specificity]
 
 x_pos = [i for i, _ in enumerate(x)]
 
-plt.bar(x_pos, performance, color='green')
+plt.bar(x_pos, performance, color=('green', 'red', 'blue', 'orange'))
 plt.xlabel("Performance Metric")
 plt.ylabel("Score")
-plt.ylim(0, 1)                                      #setting y axis range
+plt.ylim(0, 1)                                      #setting performance score range
 plt.title("Performance Metrics of Model")
 
 plt.xticks(x_pos, x)
