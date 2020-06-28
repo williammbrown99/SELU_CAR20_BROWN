@@ -77,7 +77,7 @@ OPTMZR = ('SGD')
 '''~~~~ MODEL SETUP ~~~~'''
 #your code to create the model
 model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(56, 56)),                                         #flattening images to one-dimensional array
+    keras.layers.Flatten(input_shape=(56, 56)),                                         #input layer, flattening images to one-dimensional array
     keras.layers.Dense(5, activation='sigmoid', kernel_initializer='random_normal'),    #hidden layer, sigmoid activation function
     keras.layers.Dense(4, activation='selu', kernel_initializer='random_normal'),       #second hidden layer, selu activation function
     keras.layers.Dense(2, activation='relu', kernel_initializer='random_normal')        #output layer, relu activation function
