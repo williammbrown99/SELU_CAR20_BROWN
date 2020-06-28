@@ -159,11 +159,11 @@ output_file.close()
 plt.style.use('ggplot')
 
 x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']
-energy = [f1score, aucRoc, sensitivity, specificity]
+performance = [f1score, aucRoc, sensitivity, specificity]
 
 x_pos = [i for i, _ in enumerate(x)]
 
-plt.bar(x_pos, energy, color='green')
+plt.bar(x_pos, performance, color='green')
 plt.xlabel("Performance Metric")
 plt.ylabel("Score")
 plt.ylim(0, 1)                                      #setting y axis range
