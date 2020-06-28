@@ -27,11 +27,13 @@ Distribution: Participants of SELU - CAR System -- LBRN 2020 Virtual Summer Prog
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+import csv
 
 from tensorflow import keras
 from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
+from array import array
 
 '''~~~~ CLASSES ~~~~'''
 #Your class definitions
@@ -63,8 +65,8 @@ NUM_NODE = (1,1)
 #ACT_FUN = ('sigmoid', 'selu', 'relu'): The activation functions in the first and the second hidden layers are Sigmoid and SeLU,
 # respectively. At the output layer, it is ReLU.
 
-ACT_FUN = ('relu')          #Activation function.
-INITZR = ('RandomNormal')   #Initializer
+ACT_FUN = ('relu')                  #Activation function.
+INITZR = ('RandomNormal')           #Initializer
 LOS_FUN = ('mean_squared_error')
 OPTMZR = ('SGD')
 #add more as needed
@@ -107,16 +109,19 @@ f2.close()
 
 '''~~~~ TRAINING ~~~~'''
 #your code to train the model. Export trained model parameters to load later as model.bin
-model.fit(train_set_all_xy, train_label_all_xy, epochs=10)  #training model
+model.fit(train_set_all_xy, train_label_all_xy, epochs=10)   #training model
 
+model.save('CadLung/EXP1/MODEL/model')                       #Exporting Model
 
 '''~~~~ TESTING ~~~~'''
 #your code to test the model. Export predictions with sample-IDs as testOutput.bin
-predictions = model.predict(test_set_all_xy)            #predicted test values (1092, 2) 2 nodes per prediction
+model = keras.models.load_model('CadLung/EXP1/MODEL/model') #Importing Model
 
-test_pred_all_xy = []                                   #creating predictions list
+predictions = model.predict(test_set_all_xy)                #predicted test values (1092, 2) 2 nodes per prediction
+
+test_pred_all_xy = []                                       #creating predictions list
 for i in range(len(test_label_all_xy)):
-    test_pred_all_xy.append(np.argmax(predictions[i]))  #making prediction using the highest valued node
+    test_pred_all_xy.append(np.argmax(predictions[i]))      #making prediction using the highest valued node
 
 '''~~~~ EVALUATION ~~~~'''
 #your code to evaluate performance of the model. Export performance metrics as csv and binary file performance.csv and performance.bin
@@ -133,8 +138,24 @@ print('Sensitivity: {}'.format(sensitivity))
 specificity = confMatrix[1,1]/(confMatrix[1,0]+confMatrix[1,1])                     #Calculate Specificity
 print('Specificity: {}'.format(specificity))
 
+###Saving performance.csv file###
+with open('CadLung/EXP1/OUTPUT/performance.csv', mode='w') as performance_file:
+    employee_writer = csv.writer(performance_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+    employee_writer.writerow(['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity'])
+    employee_writer.writerow([f1score, aucRoc, sensitivity, specificity])
+########
+
+###Saving performance.bin file###
+output_file = open('CadLung/EXP1/OUTPUT/performance.bin', 'wb')
+float_array = array('d', [f1score, aucRoc, sensitivity, specificity])
+float_array.tofile(output_file)
+output_file.close()
+########
+
 '''~~~~ VISUALIZE ~~~~'''
 #your code to visualize performance metrics. Export charts.
+###Building Bar Chart###
 plt.style.use('ggplot')
 
 x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']
@@ -148,8 +169,10 @@ plt.ylabel("Score")
 plt.title("Performance Metrics of Model")
 
 plt.xticks(x_pos, x)
+plt.savefig('CadLung/EXP1/OUTPUT/performance.png')  #Saving performance.png file
 
 plt.show()
+########
 
 
 print('Done!')
