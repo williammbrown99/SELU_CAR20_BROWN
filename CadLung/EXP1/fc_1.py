@@ -79,7 +79,7 @@ model = keras.Sequential([
     keras.layers.Flatten(input_shape=(56, 56)),                                         #flattening images
     keras.layers.Dense(5, activation='sigmoid', kernel_initializer='random_normal'),    #hidden layer, sigmoid activation function
     keras.layers.Dense(4, activation='selu', kernel_initializer='random_normal'),       #second hidden layer, selu activation function
-    keras.layers.Dense(1, activation='relu', kernel_initializer='random_normal')        #output layer, relu activation function
+    keras.layers.Dense(2, activation='relu', kernel_initializer='random_normal')        #output layer, relu activation function
 ])
 
 model.compile(optimizer='SGD',                  #optimizer, Stochastic gradient descent
@@ -95,10 +95,10 @@ DataSet_yz = 'data_balanced_6Slices_1orMore_yz'
 
 #Obtaining data
 f2 = open(PATH_VOI + DataSet_xy + '.bin','rb') 
-train_set_all_xy = np.load(f2)          #training data
-train_label_all_xy = np.load(f2)        #training labels
-test_set_all_xy = np.load(f2)           #test data
-test_label_all_xy = np.load(f2)         #test labels
+train_set_all_xy = np.load(f2).reshape(2520, 56, 56)    #training data, reshaped images to 56x56 pixels
+train_label_all_xy = np.load(f2)                        #training labels
+test_set_all_xy = np.load(f2).reshape(1092, 56, 56)     #test data, reshaped images 56x56 pixels
+test_label_all_xy = np.load(f2)                         #test labels
 f2.close()
 
 '''~~~~ PRE-PROCESS ~~~~'''
@@ -112,17 +112,20 @@ model.fit(train_set_all_xy, train_label_all_xy, epochs=10)  #training model
 
 '''~~~~ TESTING ~~~~'''
 #your code to test the model. Export predictions with sample-IDs as testOutput.bin
-test_pred_all_xy = model.predict(test_set_all_xy)   #predicted test values
+predictions = model.predict(test_set_all_xy)            #predicted test values (1092, 2) 2 nodes per prediction
 
+test_pred_all_xy = []                                   #creating predictions list
+for i in range(len(test_label_all_xy)):
+    test_pred_all_xy.append(np.argmax(predictions[i]))  #making prediction using the highest valued node
 
 '''~~~~ EVALUATION ~~~~'''
 #your code to evaluate performance of the model. Export performance metrics as csv and binary file performance.csv and performance.bin
-f1score = f1_score(test_label_all_xy, test_pred_all_xy.round(), average='weighted') #Calculate F1-score
+f1score = f1_score(test_label_all_xy, test_pred_all_xy, average='weighted')         #Calculate F1-score
 print('F1-score = {}'.format(f1score))
 aucRoc = roc_auc_score(test_label_all_xy, test_pred_all_xy)                         #Calculate AUC of ROC
 print('AUC of ROC: {}'.format(aucRoc))
 
-confMatrix = confusion_matrix(test_label_all_xy, test_pred_all_xy.round())          #Calculate Confusion Matrix
+confMatrix = confusion_matrix(test_label_all_xy, test_pred_all_xy)                  #Calculate Confusion Matrix
 print('Confusion Matrix : \n', confMatrix)
 
 sensitivity = confMatrix[0,0]/(confMatrix[0,0]+confMatrix[0,1])                     #Calculate Sensitivity
@@ -140,9 +143,9 @@ energy = [f1score, aucRoc, sensitivity, specificity]
 x_pos = [i for i, _ in enumerate(x)]
 
 plt.bar(x_pos, energy, color='green')
-plt.xlabel("Error Metric")
+plt.xlabel("Performance Metric")
 plt.ylabel("Score")
-plt.title("Error Metrics of Model")
+plt.title("Performance Metrics of Model")
 
 plt.xticks(x_pos, x)
 
