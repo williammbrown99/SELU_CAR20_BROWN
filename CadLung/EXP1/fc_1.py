@@ -76,31 +76,30 @@ OPTMZR = ('SGD')
 
 '''~~~~ MODEL SETUP ~~~~'''
 #your code to create the model
-
 model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(56, 56)),                                         #flattening images
+    keras.layers.Flatten(input_shape=(56, 56)),                                         #flattening images to one-dimensional array
     keras.layers.Dense(5, activation='sigmoid', kernel_initializer='random_normal'),    #hidden layer, sigmoid activation function
     keras.layers.Dense(4, activation='selu', kernel_initializer='random_normal'),       #second hidden layer, selu activation function
     keras.layers.Dense(2, activation='relu', kernel_initializer='random_normal')        #output layer, relu activation function
 ])
 
-model.compile(optimizer='SGD',                  #optimizer, Stochastic gradient descent
-              loss='mean_squared_error',        #loss function, mean squared error
+model.compile(optimizer='SGD',                  #optimizer: stochastic gradient descent
+              loss='mean_squared_error',        #loss function: mean squared error
               metrics=['accuracy']) 
 
 '''~~~~ LOAD DATA ~~~~'''
 #your code to load data. Export ID of each sample as 'train', 'val', 'test' as a csv and binary file sampleID.csv and sampleID.bin
 #VOI Data
-DataSet_xy = 'data_balanced_6Slices_1orMore_xy'
-DataSet_xz = 'data_balanced_6Slices_1orMore_xz'
-DataSet_yz = 'data_balanced_6Slices_1orMore_yz'
+DataSet_xy = 'data_balanced_6Slices_1orMore_xy' #front view of lung
+DataSet_xz = 'data_balanced_6Slices_1orMore_xz' #top view of lung
+DataSet_yz = 'data_balanced_6Slices_1orMore_yz' #side view of lung
 
-#Obtaining data
+#Obtaining data for front view of lung
 f2 = open(PATH_VOI + DataSet_xy + '.bin','rb') 
-train_set_all_xy = np.load(f2).reshape(2520, 56, 56)    #training data, reshaped images to 56x56 pixels
-train_label_all_xy = np.load(f2)                        #training labels
-test_set_all_xy = np.load(f2).reshape(1092, 56, 56)     #test data, reshaped images 56x56 pixels
-test_label_all_xy = np.load(f2)                         #test labels
+train_set_all_xy = np.load(f2).reshape(2520, 56, 56)    #training data, reshaped 2520 images to 56x56 pixels
+train_label_all_xy = np.load(f2)                        #2520 correct labels for training set
+test_set_all_xy = np.load(f2).reshape(1092, 56, 56)     #test data, reshaped 1092 images to 56x56 pixels
+test_label_all_xy = np.load(f2)                         #1092 correct labels for test set
 f2.close()
 
 '''~~~~ PRE-PROCESS ~~~~'''
@@ -111,17 +110,17 @@ f2.close()
 #your code to train the model. Export trained model parameters to load later as model.bin
 model.fit(train_set_all_xy, train_label_all_xy, epochs=10)   #training model
 
-model.save('CadLung/EXP1/MODEL/model')                       #Exporting Model
+model.save('CadLung/EXP1/MODEL/model.h5')                       #Exporting Model as h5 file
 
 '''~~~~ TESTING ~~~~'''
 #your code to test the model. Export predictions with sample-IDs as testOutput.bin
-model = keras.models.load_model('CadLung/EXP1/MODEL/model') #Importing Model
+model = keras.models.load_model('CadLung/EXP1/MODEL/model.h5')  #Importing Model
 
-predictions = model.predict(test_set_all_xy)                #predicted test values (1092, 2) 2 nodes per prediction
+predictions = model.predict(test_set_all_xy)                    #predicted test values (1092, 2) 2 nodes per prediction
 
-test_pred_all_xy = []                                       #creating predictions list
+test_pred_all_xy = []                                           #creating predictions list
 for i in range(len(test_label_all_xy)):
-    test_pred_all_xy.append(np.argmax(predictions[i]))      #making prediction using the highest valued node
+    test_pred_all_xy.append(np.argmax(predictions[i]))          #making prediction using the highest valued node
 
 '''~~~~ EVALUATION ~~~~'''
 #your code to evaluate performance of the model. Export performance metrics as csv and binary file performance.csv and performance.bin
@@ -155,6 +154,7 @@ output_file.close()
 
 '''~~~~ VISUALIZE ~~~~'''
 #your code to visualize performance metrics. Export charts.
+
 ###Building Bar Chart###
 plt.style.use('ggplot')
 
@@ -166,10 +166,11 @@ x_pos = [i for i, _ in enumerate(x)]
 plt.bar(x_pos, energy, color='green')
 plt.xlabel("Performance Metric")
 plt.ylabel("Score")
+plt.ylim(0, 1)                                      #setting y axis range
 plt.title("Performance Metrics of Model")
 
 plt.xticks(x_pos, x)
-plt.savefig('CadLung/EXP1/OUTPUT/performance.png')  #Saving performance.png file
+plt.savefig('CadLung/EXP1/OUTPUT/performance.png')  #Exporting bar chart
 
 plt.show()
 ########
