@@ -43,6 +43,36 @@ from array import array
 
 '''~~~~ FUNCTIONS ~~~~'''
 #Your function definitions
+#plot_train_history: function to plot model performance
+def plot_train_history(history, title, performance):
+    fig, axs = plt.subplots(2)
+    fig.suptitle(title)
+
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    #options include: loss, val_loss, accuracy, val_accuracy
+
+    epochs = range(len(loss))   #number of epochs
+
+    #plotting training and validation loss
+    axs[0].plot(epochs, loss, 'blue', label='Training loss')
+    axs[0].plot(epochs, val_loss, 'red', label='Validation loss')
+    axs[0].legend()
+    #
+
+    #plotting test performance metrics
+    x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
+    x_pos = [i for i, _ in enumerate(x)]
+
+    axs[1].bar(x_pos, performance, color=('green', 'red', 'blue', 'orange'))
+    axs[1].set_ylim([0, 1])                                         #setting performance score range  
+    axs[1].set_xticks(x_pos)
+    axs[1].set_xticklabels(x)                                       #setting performance labels
+    #
+
+    plt.savefig('CadLung/EXP1/OUTPUT/performance.png')              #Exporting performance chart
+
+    plt.show()
 
 '''~~~~ end of FUNCTIONS ~~~~'''
 
@@ -59,7 +89,7 @@ EXP_ID = 'Exp_1'
 #Network Architecture Parameters
 #NUM_NODE = (5, 4, 2): Two hidden layers with 5 and 4 nodes, respectively. The output layer has 2 nodes.
 
-NUM_NODE = (1,1)
+NUM_NODE = (5,4,2)
 
 #Model Parameters
 #ACT_FUN = ('sigmoid', 'selu', 'relu'): The activation functions in the first and the second hidden layers are Sigmoid and SeLU,
@@ -113,8 +143,9 @@ validation_label_xy = train_label_all_xy[-350:]     #creating validation labels 
 
 '''~~~~ TRAINING ~~~~'''
 #your code to train the model. Export trained model parameters to load later as model.bin
-model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=10, validation_data=(validation_set_xy, validation_label_xy))      
-###training model
+model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=10, validation_data=(validation_set_xy, validation_label_xy))      
+#training model and saving history
+#saving history is required to plot training and validation loss
 
 model.save('CadLung/EXP1/MODEL/model.h5')                       #Exporting Model as h5 file
 
@@ -162,26 +193,9 @@ output_file.close()
 
 '''~~~~ VISUALIZE ~~~~'''
 #your code to visualize performance metrics. Export charts.
-
-###Building Bar Chart###
-plt.style.use('ggplot')
-
-x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']
-performance = [f1score, aucRoc, sensitivity, specificity]
-
-x_pos = [i for i, _ in enumerate(x)]
-
-plt.bar(x_pos, performance, color=('green', 'red', 'blue', 'orange'))
-plt.xlabel("Performance Metric")
-plt.ylabel("Score")
-plt.ylim(0, 1)                                      #setting performance score range
-plt.title("Performance Metrics of Model")
-
-plt.xticks(x_pos, x)
-plt.savefig('CadLung/EXP1/OUTPUT/performance.png')  #Exporting bar chart
-
-plt.show()
-########
-
+performance = [f1score, aucRoc, sensitivity, specificity]   #creating performance list
+#Using plot_train_history function to plot model performance
+plot_train_history(model_history, 'Model XY Performance', performance)
+#####
 
 print('Done!')
