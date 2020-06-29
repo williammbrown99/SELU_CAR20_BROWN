@@ -98,17 +98,23 @@ DataSet_yz = 'data_balanced_6Slices_1orMore_yz' #side view of lung
 f2 = open(PATH_VOI + DataSet_xy + '.bin','rb') 
 train_set_all_xy = np.load(f2).reshape(2520, 56, 56)    #training data, reshaped 2520 images to 56x56 pixels
 train_label_all_xy = np.load(f2)                        #2520 correct labels for training set
-test_set_all_xy = np.load(f2).reshape(1092, 56, 56)     #test data, reshaped 1092 images to 56x56 pixels
-test_label_all_xy = np.load(f2)                         #1092 correct labels for test set
+test_set_all_xy = np.load(f2).reshape(1092, 56, 56)     #test data, reshaped 1092 images to 56x56 pixels 30%
+test_label_all_xy = np.load(f2)                         #1092 correct labels for test set 30%
 f2.close()
 
 '''~~~~ PRE-PROCESS ~~~~'''
-#your code to pre-proces data. Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin  
+#your code to pre-proces data. Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin
+train_data_xy = train_set_all_xy[:2170]             #creating training data 60%
+train_data_label_xy = train_label_all_xy[:2170]     #creating training labels 60%
+
+validation_set_xy = train_set_all_xy[-350:]         #creating validation data 10%
+validation_label_xy = train_label_all_xy[-350:]     #creating validation labels 10%
 
 
 '''~~~~ TRAINING ~~~~'''
 #your code to train the model. Export trained model parameters to load later as model.bin
-model.fit(train_set_all_xy, train_label_all_xy, epochs=10)      #training model
+model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=10, validation_data=(validation_set_xy, validation_label_xy))      
+###training model
 
 model.save('CadLung/EXP1/MODEL/model.h5')                       #Exporting Model as h5 file
 
