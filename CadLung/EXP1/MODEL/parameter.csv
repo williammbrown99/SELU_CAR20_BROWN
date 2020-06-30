@@ -1,1 +1,8 @@
-
+path_voi,CadLung/INPUT/Voi_Data/
+exp_id,Exp_1
+num_node,5 4 2
+act_fun,relu
+initializer,RandomNormal
+loss_fun,mean_squared_error
+optimizer,SGD
+path_exp,CadLung/EXP1/

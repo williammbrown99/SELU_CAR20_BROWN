@@ -73,6 +73,23 @@ def plot_train_history(history, title, performance):
     plt.savefig('CadLung/EXP1/OUTPUT/performance.png')              #Exporting performance chart
 
     plt.show()
+    #####
+
+#save_csv_bin: function to convert dict to csv and bin file
+def save_csv_bin(path_csv, path_bin, data_dict):
+    #saves as csv file
+    with open(path_csv, 'w') as f:
+        for key in data_dict.keys():
+            f.write("%s,%s\n"%(key,data_dict[key]))
+    
+    #saves as bin file
+    with open(path_bin, 'wb') as file:
+        for i in data_dict.values():
+            if type(i) == type(str()):
+                file.write(i.encode('ascii'))   #converts strings to ascii and writes to bin
+            else:
+                file.write(i)                   #writes to bin
+#
 
 '''~~~~ end of FUNCTIONS ~~~~'''
 
@@ -82,6 +99,7 @@ def plot_train_history(history, title, performance):
 ###
 #Use tuple simple or multi-dimensional-like for more detail settings. Add aditional constants for detail of each parameters to export.
 PATH_VOI = 'CadLung/INPUT/Voi_Data/'
+PATH_EXP = 'CadLung/EXP1/'
 
 #Experiment ID
 EXP_ID = 'Exp_1'
@@ -89,20 +107,25 @@ EXP_ID = 'Exp_1'
 #Network Architecture Parameters
 #NUM_NODE = (5, 4, 2): Two hidden layers with 5 and 4 nodes, respectively. The output layer has 2 nodes.
 
-NUM_NODE = (5,4,2)
+NUM_NODE = '5 4 2'
 
 #Model Parameters
 #ACT_FUN = ('sigmoid', 'selu', 'relu'): The activation functions in the first and the second hidden layers are Sigmoid and SeLU,
 # respectively. At the output layer, it is ReLU.
 
-ACT_FUN = ('relu')                  #Activation function.
-INITZR = ('RandomNormal')           #Initializer
-LOS_FUN = ('mean_squared_error')
-OPTMZR = ('SGD')
+ACT_FUN = 'relu'                 #Activation function.
+INITZR = 'RandomNormal'           #Initializer
+LOS_FUN = 'mean_squared_error'
+OPTMZR = 'SGD'
 #add more as needed
 
-#Export Parameters as a csv and binary file parameter.csv and parameter.bin
+#creating parameter data
+parameter_dict = {'path_voi':PATH_VOI, 'exp_id':EXP_ID, 'num_node':NUM_NODE, 'act_fun':ACT_FUN,\
+                 'initializer':INITZR, 'loss_fun':LOS_FUN, 'optimizer':OPTMZR, 'path_exp':PATH_EXP}
 
+#using function to save parameter data
+save_csv_bin(PATH_EXP+'MODEL/parameter.csv', PATH_EXP+'MODEL/parameter.bin', parameter_dict)
+#
 
 '''~~~~ MODEL SETUP ~~~~'''
 #your code to create the model
@@ -132,13 +155,20 @@ test_set_all_xy = np.load(f2).reshape(1092, 56, 56)     #test data, reshaped 109
 test_label_all_xy = np.load(f2)                         #1092 correct labels for test set 30%
 f2.close()
 
-'''~~~~ PRE-PROCESS ~~~~'''
-#your code to pre-proces data. Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin
 train_data_xy = train_set_all_xy[:2170]             #creating training data 60%
 train_data_label_xy = train_label_all_xy[:2170]     #creating training labels 60%
 
 validation_set_xy = train_set_all_xy[-350:]         #creating validation data 10%
 validation_label_xy = train_label_all_xy[-350:]     #creating validation labels 10%
+
+###
+#creating sampleID data and saving as csv and bin file
+performance_dict = {'train':train_data_xy, 'val':validation_set_xy, 'test':test_set_all_xy}
+save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', performance_dict)
+###
+
+'''~~~~ PRE-PROCESS ~~~~'''
+#your code to pre-proces data. Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin
 
 
 '''~~~~ TRAINING ~~~~'''
@@ -147,11 +177,11 @@ model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epo
 #training model and saving history
 #saving history is required to plot training and validation loss
 
-model.save('CadLung/EXP1/MODEL/model.h5')                       #Exporting Model as h5 file
+model.save(PATH_EXP+'MODEL/model.h5')                           #Exporting Model as h5 file
 
 '''~~~~ TESTING ~~~~'''
 #your code to test the model. Export predictions with sample-IDs as testOutput.bin
-model = keras.models.load_model('CadLung/EXP1/MODEL/model.h5')  #Importing Model
+model = keras.models.load_model(PATH_EXP+'MODEL/model.h5')      #Importing Model
 
 predictions = model.predict(test_set_all_xy)                    #predicted test values (1092, 2) 2 nodes per prediction
 
@@ -160,6 +190,12 @@ test_pred_all_xy = []                                           #creating predic
 for i in range(len(test_label_all_xy)):
     test_pred_all_xy.append(np.argmax(predictions[i]))          #making prediction using the highest valued node
 #####
+
+###Exports test output to testOutput.bin
+with open(PATH_EXP+'OUTPUT/testOutput.bin', 'wb') as file:
+    for i in test_pred_all_xy:
+            file.write(i)                   #writes to bin
+###
 
 '''~~~~ EVALUATION ~~~~'''
 #your code to evaluate performance of the model. Export performance metrics as csv and binary file performance.csv and performance.bin
@@ -176,20 +212,11 @@ print('Sensitivity: {}'.format(sensitivity))
 specificity = confMatrix[1,1]/(confMatrix[1,0]+confMatrix[1,1])                     #Calculate Specificity
 print('Specificity: {}'.format(specificity))
 
-###Saving performance.csv file###
-with open('CadLung/EXP1/OUTPUT/performance.csv', mode='w') as performance_file:
-    employee_writer = csv.writer(performance_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-
-    employee_writer.writerow(['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity'])
-    employee_writer.writerow([f1score, aucRoc, sensitivity, specificity])
-########
-
-###Saving performance.bin file###
-output_file = open('CadLung/EXP1/OUTPUT/performance.bin', 'wb')
-float_array = array('d', [f1score, aucRoc, sensitivity, specificity])
-float_array.tofile(output_file)
-output_file.close()
-########
+###
+#creating performance data and saving as csv and bin file
+performance_dict = {'F1-score':f1score, 'AUC of ROC':aucRoc, 'Sensitivity':sensitivity, 'Specificity':specificity}
+save_csv_bin(PATH_EXP+'OUTPUT/performance.csv', PATH_EXP+'OUTPUT/performance.bin', performance_dict)
+###
 
 '''~~~~ VISUALIZE ~~~~'''
 #your code to visualize performance metrics. Export charts.
