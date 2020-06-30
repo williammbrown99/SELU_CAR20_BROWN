@@ -28,6 +28,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+import os
 
 from tensorflow import keras
 from sklearn.metrics import f1_score
@@ -91,6 +92,28 @@ def save_csv_bin(path_csv, path_bin, data_dict):
                 file.write(i)                   #writes to bin
 #
 
+#delete_old_data: function to delete data from previous runs
+def delete_old_data(PATH_EXP):
+    if (os.path.exists(PATH_EXP+'INPUT/sampleID.csv')):
+        os.remove(PATH_EXP+'INPUT/sampleID.csv')
+    if (os.path.exists(PATH_EXP+'INPUT/sampleID.bin')):
+        os.remove(PATH_EXP+'INPUT/sampleID.bin')
+
+    if (os.path.exists(PATH_EXP+'MODEL/model.h5')):
+        os.remove(PATH_EXP+'MODEL/model.h5')
+    if (os.path.exists(PATH_EXP+'MODEL/parameter.csv')):
+        os.remove(PATH_EXP+'MODEL/parameter.csv')
+    if (os.path.exists(PATH_EXP+'MODEL/parameter.bin')):
+        os.remove(PATH_EXP+'MODEL/parameter.bin')
+
+    if (os.path.exists(PATH_EXP+'OUTPUT/performance.csv')):
+        os.remove(PATH_EXP+'OUTPUT/performance.csv')
+    if (os.path.exists(PATH_EXP+'OUTPUT/performance.bin')):
+        os.remove(PATH_EXP+'OUTPUT/performance.bin')
+    if (os.path.exists(PATH_EXP+'OUTPUT/performance.png')):
+        os.remove(PATH_EXP+'OUTPUT/performance.png')
+#
+
 '''~~~~ end of FUNCTIONS ~~~~'''
 
 
@@ -100,6 +123,8 @@ def save_csv_bin(path_csv, path_bin, data_dict):
 #Use tuple simple or multi-dimensional-like for more detail settings. Add aditional constants for detail of each parameters to export.
 PATH_VOI = 'CadLung/INPUT/Voi_Data/'
 PATH_EXP = 'CadLung/EXP1/'
+
+delete_old_data(PATH_EXP)   #using function to delete old data before we create new data
 
 #Experiment ID
 EXP_ID = 'Exp_1'
@@ -126,6 +151,7 @@ parameter_dict = {'path_voi':PATH_VOI, 'exp_id':EXP_ID, 'num_node':NUM_NODE, 'ac
 #using function to save parameter data
 save_csv_bin(PATH_EXP+'MODEL/parameter.csv', PATH_EXP+'MODEL/parameter.bin', parameter_dict)
 #
+
 
 '''~~~~ MODEL SETUP ~~~~'''
 #your code to create the model
@@ -164,6 +190,8 @@ validation_label_xy = train_label_all_xy[-350:]     #creating validation labels 
 ###
 #creating sampleID data and saving as csv and bin file
 performance_dict = {'train':train_data_xy, 'val':validation_set_xy, 'test':test_set_all_xy}
+
+#use function to save sampleID data to csv and bin file
 save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', performance_dict)
 ###
 
