@@ -46,29 +46,37 @@ from array import array
 #Your function definitions
 #plot_train_history: function to plot model performance
 def plot_train_history(history, title, performance):
-    fig, axs = plt.subplots(2)
+    fig, axs = plt.subplots(3)
     fig.suptitle(title)
 
     loss = history.history['loss']
     val_loss = history.history['val_loss']
+    accuracy = history.history['accuracy']
+    val_accuracy = history.history['val_accuracy']
     #options include: loss, val_loss, accuracy, val_accuracy
 
     epochs = range(len(loss))   #number of epochs
 
     #plotting training and validation loss
-    axs[0].plot(epochs, loss, 'blue', label='Training loss')
-    axs[0].plot(epochs, val_loss, 'red', label='Validation loss')
+    axs[1].plot(epochs, loss, 'blue', label='Training loss')
+    axs[1].plot(epochs, val_loss, 'red', label='Validation loss')
+    axs[1].legend()
+    #
+
+    #plotting training and validation accuracy
+    axs[0].plot(epochs, accuracy, 'purple', label='Training accuracy')
+    axs[0].plot(epochs, val_accuracy, 'orange', label='Validation accuracy')
     axs[0].legend()
     #
 
-    #plotting test performance metrics
+    #plotting test performance metrics bar chart
     x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
     x_pos = [i for i, _ in enumerate(x)]
 
-    axs[1].bar(x_pos, performance, color=('green', 'red', 'blue', 'orange'))
-    axs[1].set_ylim([0, 1])                                         #setting performance score range  
-    axs[1].set_xticks(x_pos)
-    axs[1].set_xticklabels(x)                                       #setting performance labels
+    axs[2].bar(x_pos, performance, color=('green', 'red', 'blue', 'orange'))
+    axs[2].set_ylim([0, 1])                                         #setting performance score range  
+    axs[2].set_xticks(x_pos)
+    axs[2].set_xticklabels(x)                                       #setting performance labels
     #
 
     plt.savefig('CadLung/EXP1/OUTPUT/performance.png')              #Exporting performance chart
@@ -160,7 +168,7 @@ model = keras.Sequential([
     keras.layers.Flatten(input_shape=(56, 56)),                                         #input layer, flattening images to one-dimensional array
     keras.layers.Dense(5, activation='sigmoid', kernel_initializer='random_normal'),    #hidden layer, sigmoid activation function
     keras.layers.Dense(4, activation='selu', kernel_initializer='random_normal'),       #second hidden layer, selu activation function
-    keras.layers.Dense(1, activation='relu', kernel_initializer='random_normal')        #output layer, relu activation function
+    keras.layers.Dense(1, activation='relu', kernel_initializer='random_normal')        #1 output layer, relu activation function
 ])
 
 model.compile(optimizer='SGD',                  #optimizer: stochastic gradient descent
@@ -202,9 +210,9 @@ save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', perfo
 
 '''~~~~ TRAINING ~~~~'''
 #your code to train the model. Export trained model parameters to load later as model.bin
-model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=10, validation_data=(validation_set_xy, validation_label_xy))      
+model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=100, validation_data=(validation_set_xy, validation_label_xy))      
 #training model and saving history
-#saving history is required to plot training and validation loss
+#saving history is required to plot performance png
 
 model.save(PATH_EXP+'MODEL/model.h5')                           #Exporting Model as h5 file
 
@@ -214,8 +222,8 @@ model = keras.models.load_model(PATH_EXP+'MODEL/model.h5')      #Importing Model
 
 #predicted test values (1092) 1 nodes per prediction need to round and reshape for labels
 test_pred_all_xy = []
-for i in model.predict(test_set_all_xy).reshape(1092):
-    test_pred_all_xy.append(round(i))
+for i in model.predict(test_set_all_xy).reshape(1092):  #reshape from (1092, 1) to (1092)
+    test_pred_all_xy.append(round(i))                   #rounding to either 0 or 1
 
 ###Exports test output to testOutput.bin
 with open(PATH_EXP+'OUTPUT/testOutput.bin', 'wb') as file:
@@ -239,7 +247,7 @@ specificity = confMatrix[1,1]/(confMatrix[1,0]+confMatrix[1,1])                 
 print('Specificity: {}'.format(specificity))
 
 ###
-#creating performance data and saving as csv and bin file
+#creating performance data dict and saving as csv and bin file
 performance_dict = {'F1-score':f1score, 'AUC of ROC':aucRoc, 'Sensitivity':sensitivity, 'Specificity':specificity}
 save_csv_bin(PATH_EXP+'OUTPUT/performance.csv', PATH_EXP+'OUTPUT/performance.bin', performance_dict)
 ###
