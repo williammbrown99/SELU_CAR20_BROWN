@@ -90,7 +90,7 @@ def save_csv_bin(path_csv, path_bin, data_dict):
                 file.write(i.encode('ascii'))   #converts strings to ascii and writes to bin
             else:
                 file.write(i)                   #writes to bin
-#
+#####
 
 #delete_old_data: function to delete data from previous runs
 def delete_old_data(PATH_EXP):
@@ -112,10 +112,11 @@ def delete_old_data(PATH_EXP):
         os.remove(PATH_EXP+'OUTPUT/performance.bin')
     if (os.path.exists(PATH_EXP+'OUTPUT/performance.png')):
         os.remove(PATH_EXP+'OUTPUT/performance.png')
-#
+    if (os.path.exists(PATH_EXP+'OUTPUT/testOutput.bin')):
+        os.remove(PATH_EXP+'OUTPUT/testOutput.bin')
+#####
 
 '''~~~~ end of FUNCTIONS ~~~~'''
-
 
 
 '''~~~~ PARAMETERS ~~~~'''
@@ -159,7 +160,7 @@ model = keras.Sequential([
     keras.layers.Flatten(input_shape=(56, 56)),                                         #input layer, flattening images to one-dimensional array
     keras.layers.Dense(5, activation='sigmoid', kernel_initializer='random_normal'),    #hidden layer, sigmoid activation function
     keras.layers.Dense(4, activation='selu', kernel_initializer='random_normal'),       #second hidden layer, selu activation function
-    keras.layers.Dense(2, activation='relu', kernel_initializer='random_normal')        #output layer, relu activation function
+    keras.layers.Dense(1, activation='relu', kernel_initializer='random_normal')        #output layer, relu activation function
 ])
 
 model.compile(optimizer='SGD',                  #optimizer: stochastic gradient descent
@@ -211,18 +212,15 @@ model.save(PATH_EXP+'MODEL/model.h5')                           #Exporting Model
 #your code to test the model. Export predictions with sample-IDs as testOutput.bin
 model = keras.models.load_model(PATH_EXP+'MODEL/model.h5')      #Importing Model
 
-predictions = model.predict(test_set_all_xy)                    #predicted test values (1092, 2) 2 nodes per prediction
-
-###Proccessing Model Output###
-test_pred_all_xy = []                                           #creating predictions list
-for i in range(len(test_label_all_xy)):
-    test_pred_all_xy.append(np.argmax(predictions[i]))          #making prediction using the highest valued node
-#####
+#predicted test values (1092) 1 nodes per prediction need to round and reshape for labels
+test_pred_all_xy = []
+for i in model.predict(test_set_all_xy).reshape(1092):
+    test_pred_all_xy.append(round(i))
 
 ###Exports test output to testOutput.bin
 with open(PATH_EXP+'OUTPUT/testOutput.bin', 'wb') as file:
     for i in test_pred_all_xy:
-            file.write(i)                   #writes to bin
+            file.write(bytes(i))                   #writes to bin
 ###
 
 '''~~~~ EVALUATION ~~~~'''
