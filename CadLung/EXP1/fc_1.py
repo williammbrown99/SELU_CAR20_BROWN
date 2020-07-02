@@ -79,7 +79,7 @@ def plot_train_history(history, title, performance):
     axs[2].set_xticklabels(x)                                       #setting performance labels
     #
 
-    plt.savefig('CadLung/EXP1/OUTPUT/performance.png')              #Exporting performance chart
+    plt.savefig(PATH_EXP+'OUTPUT/performance.png')              #Exporting performance chart
 
     plt.show()
     #####
