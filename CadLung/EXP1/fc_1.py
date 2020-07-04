@@ -17,9 +17,6 @@ Distribution: Participants of SELU - CAR System -- LBRN 2020 Virtual Summer Prog
 
 '''~~~~ HELP
 #Enter your notes to help to understand your code here
-
-
-
 ~~~~'''
 
 '''IMPORTS'''
@@ -29,12 +26,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import os
+import keras.backend as K
 
 from tensorflow import keras
 from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 from array import array
+from keras.metrics import AUC
+
 
 '''~~~~ CLASSES ~~~~'''
 #Your class definitions
@@ -44,46 +44,6 @@ from array import array
 
 '''~~~~ FUNCTIONS ~~~~'''
 #Your function definitions
-#plot_train_history: function to plot model performance
-def plot_train_history(history, title, performance):
-    fig, axs = plt.subplots(3)
-    fig.suptitle(title)
-
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    accuracy = history.history['accuracy']
-    val_accuracy = history.history['val_accuracy']
-    #options include: loss, val_loss, accuracy, val_accuracy
-
-    epochs = range(len(loss))   #number of epochs
-
-    #plotting training and validation loss
-    axs[1].plot(epochs, loss, 'blue', label='Training loss')
-    axs[1].plot(epochs, val_loss, 'red', label='Validation loss')
-    axs[1].legend()
-    #
-
-    #plotting training and validation accuracy
-    axs[0].plot(epochs, accuracy, 'purple', label='Training accuracy')
-    axs[0].plot(epochs, val_accuracy, 'orange', label='Validation accuracy')
-    axs[0].legend()
-    #
-
-    #plotting test performance metrics bar chart
-    x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
-    x_pos = [i for i, _ in enumerate(x)]
-
-    axs[2].bar(x_pos, performance, color=('green', 'red', 'blue', 'orange'))
-    axs[2].set_ylim([0, 1])                                         #setting performance score range  
-    axs[2].set_xticks(x_pos)
-    axs[2].set_xticklabels(x)                                       #setting performance labels
-    #
-
-    plt.savefig(PATH_EXP+'OUTPUT/performance.png')              #Exporting performance chart
-
-    plt.show()
-    #####
-
 #save_csv_bin: function to convert dict to csv and bin file
 def save_csv_bin(path_csv, path_bin, data_dict):
     #saves as csv file
@@ -101,7 +61,7 @@ def save_csv_bin(path_csv, path_bin, data_dict):
 #####
 
 #delete_old_data: function to delete data from previous runs
-def delete_old_data(PATH_EXP):
+def delete_old_data():
     if (os.path.exists(PATH_EXP+'INPUT/sampleID.csv')):
         os.remove(PATH_EXP+'INPUT/sampleID.csv')
     if (os.path.exists(PATH_EXP+'INPUT/sampleID.bin')):
@@ -124,6 +84,144 @@ def delete_old_data(PATH_EXP):
         os.remove(PATH_EXP+'OUTPUT/testOutput.bin')
 #####
 
+### CUSTOM METRICS ###
+#AUC: function to calculate AUC of ROC
+def AUC(true, pred):
+    #https://www.kaggle.com/c/santander-customer-transaction-prediction/discussion/82689
+    #We want strictly 1D arrays - cannot have (batch, 1), for instance
+    true= K.flatten(true)
+    pred = K.flatten(pred)
+
+    #total number of elements in this batch
+    totalCount = K.shape(true)[0]
+
+    #sorting the prediction values in descending order
+    values, indices = tf.nn.top_k(pred, k = totalCount)   
+    #sorting the ground truth values based on the predictions above         
+    sortedTrue = K.gather(true, indices)
+
+    #getting the ground negative elements (already sorted above)
+    negatives = 1 - sortedTrue
+
+    #the true positive count per threshold
+    TPCurve = K.cumsum(sortedTrue)
+
+    #area under the curve
+    auc = K.sum(TPCurve * negatives)
+
+    #normalizing the result between 0 and 1
+    totalCount = K.cast(totalCount, K.floatx())
+    positiveCount = K.sum(true)
+    negativeCount = totalCount - positiveCount
+    totalArea = positiveCount * negativeCount
+    return  auc / totalArea
+#####
+
+#sensitivity: function to calculate sensitivity
+#https://www.deepideas.net/unbalanced-classes-machine-learning/
+def sensitivity(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    return true_positives / (possible_positives + K.epsilon())
+#####
+
+#specificity: function to calculate specificity
+#https://www.deepideas.net/unbalanced-classes-machine-learning/
+def specificity(y_true, y_pred):
+    true_negatives = K.sum(K.round(K.clip((1-y_true) * (1-y_pred), 0, 1)))
+    possible_negatives = K.sum(K.round(K.clip(1-y_true, 0, 1)))
+    return true_negatives / (possible_negatives + K.epsilon())
+#####
+
+#f1: function to calculate f1 score
+#https://stackoverflow.com/questions/43547402/how-to-calculate-f1-macro-in-keras
+def f1(y_true, y_pred):
+    def recall(y_true, y_pred):
+        """Recall metric.
+        Only computes a batch-wise average of recall.
+        Computes the recall, a metric for multi-label classification of
+        how many relevant items are selected.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+        recall = true_positives / (possible_positives + K.epsilon())
+        return recall
+
+    def precision(y_true, y_pred):
+        """Precision metric.
+        Only computes a batch-wise average of precision.
+        Computes the precision, a metric for multi-label classification of
+        how many selected items are relevant.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+        precision = true_positives / (predicted_positives + K.epsilon())
+        return precision
+    precision = precision(y_true, y_pred)
+    recall = recall(y_true, y_pred)
+    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+#####
+#####
+
+#plot_train_history: function to plot model performance
+def plot_train_history(history, performance):
+    fig, axs = plt.subplots(6)
+
+    #loading model history metrics
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    auc = history.history['AUC']
+    val_auc = history.history['val_AUC']
+    sensitivity = history.history['sensitivity']
+    val_sensitivity = history.history['val_sensitivity']
+    specificity = history.history['specificity']
+    val_specificity = history.history['val_specificity']
+    f1 = history.history['f1']
+    val_f1 = history.history['val_f1']
+
+    epochs = range(len(loss))   #number of epochs
+
+    #plotting training and validation loss
+    axs[0].plot(epochs, loss, 'yellow', label='Training loss')
+    axs[0].plot(epochs, val_loss, 'purple', label='Validation loss')
+    axs[0].legend()
+
+    #plotting training and validation AUC
+    axs[1].plot(epochs, auc, 'blue', label='Training AUC')
+    axs[1].plot(epochs, val_auc, 'orange', label='Validation AUC')
+    axs[1].legend()
+
+    #plotting training and validation sensitivity
+    axs[2].plot(epochs, sensitivity, 'red', label='Training sensitivity')
+    axs[2].plot(epochs, val_sensitivity, 'green', label='Validation sensitivity')
+    axs[2].legend()
+
+    #plotting training and validation specificity
+    axs[3].plot(epochs, specificity, 'yellow', label='Training specificity')
+    axs[3].plot(epochs, val_specificity, 'purple', label='Validation specificity')
+    axs[3].legend()
+
+    #plotting training and validation f1 score
+    axs[4].plot(epochs, f1, 'blue', label='Training f1')
+    axs[4].plot(epochs, val_f1, 'orange', label='Validation f1')
+    axs[4].legend()
+
+    #plotting test performance metrics bar chart
+    x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
+    x_pos = [i for i, _ in enumerate(x)]
+
+    axs[5].bar(x_pos, performance, color=('green', 'red', 'blue', 'yellow'))
+    axs[5].set_ylim([0, 1])     #setting performance score range  
+    axs[5].set_xticks(x_pos)
+    axs[5].set_xticklabels(x)   #setting performance labels
+
+    fig.tight_layout(pad=0.25)  #adding more space to figure
+
+    plt.savefig(PATH_EXP+'OUTPUT/performance.png')  #Exporting performance chart
+
+    plt.show()
+    #####
+
 '''~~~~ end of FUNCTIONS ~~~~'''
 
 
@@ -133,7 +231,7 @@ def delete_old_data(PATH_EXP):
 PATH_VOI = 'CadLung/INPUT/Voi_Data/'
 PATH_EXP = 'CadLung/EXP1/'
 
-delete_old_data(PATH_EXP)   #using function to delete old data before we create new data
+delete_old_data()   #using function to delete old data before we create new data
 
 #Experiment ID
 EXP_ID = 'Exp_1'
@@ -153,11 +251,9 @@ LOS_FUN = 'mean_squared_error'
 OPTMZR = 'SGD'
 #add more as needed
 
-#creating parameter data
+#creating parameter dict and saving as csv and bin file
 parameter_dict = {'path_voi':PATH_VOI, 'exp_id':EXP_ID, 'num_node':NUM_NODE, 'act_fun':ACT_FUN,\
                  'initializer':INITZR, 'loss_fun':LOS_FUN, 'optimizer':OPTMZR, 'path_exp':PATH_EXP}
-
-#using function to save parameter data
 save_csv_bin(PATH_EXP+'MODEL/parameter.csv', PATH_EXP+'MODEL/parameter.bin', parameter_dict)
 #
 
@@ -173,7 +269,7 @@ model = keras.Sequential([
 
 model.compile(optimizer='SGD',                  #optimizer: stochastic gradient descent
               loss='mean_squared_error',        #loss function: mean squared error
-              metrics=['accuracy']) 
+              metrics=[AUC,sensitivity,specificity,f1]) #loading custom metrics from functions
 
 '''~~~~ LOAD DATA ~~~~'''
 #your code to load data. Export ID of each sample as 'train', 'val', 'test' as a csv and binary file sampleID.csv and sampleID.bin
@@ -197,10 +293,8 @@ validation_set_xy = train_set_all_xy[-350:]         #creating validation data 10
 validation_label_xy = train_label_all_xy[-350:]     #creating validation labels 10%
 
 ###
-#creating sampleID data and saving as csv and bin file
+#creating sampleID dict and saving as csv and bin file
 performance_dict = {'train':train_data_xy, 'val':validation_set_xy, 'test':test_set_all_xy}
-
-#use function to save sampleID data to csv and bin file
 save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', performance_dict)
 ###
 
@@ -214,11 +308,18 @@ model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epo
 #training model and saving history
 #saving history is required to plot performance png
 
-model.save(PATH_EXP+'MODEL/model.h5')                           #Exporting Model as h5 file
+model.save(PATH_EXP+'MODEL/model.h5')       #Exporting Model as h5 file
 
 '''~~~~ TESTING ~~~~'''
 #your code to test the model. Export predictions with sample-IDs as testOutput.bin
-model = keras.models.load_model(PATH_EXP+'MODEL/model.h5')      #Importing Model
+#setting dependencies for the model to be able to load the custom metrics
+dependencies = {
+    'AUC': AUC,
+    'sensitivity': sensitivity,
+    'specificity': specificity,
+    'f1': f1
+}
+model = keras.models.load_model(PATH_EXP+'MODEL/model.h5', custom_objects=dependencies)      #Importing Model
 
 #predicted test values (1092) 1 nodes per prediction need to round and reshape for labels
 test_pred_all_xy = []
@@ -255,8 +356,9 @@ save_csv_bin(PATH_EXP+'OUTPUT/performance.csv', PATH_EXP+'OUTPUT/performance.bin
 '''~~~~ VISUALIZE ~~~~'''
 #your code to visualize performance metrics. Export charts.
 performance = [f1score, aucRoc, sensitivity, specificity]   #creating performance list
+
 #Using plot_train_history function to plot model performance
-plot_train_history(model_history, 'Model XY Performance', performance)
+plot_train_history(model_history, performance)
 #####
 
 print('Done!')
