@@ -33,7 +33,8 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 from array import array
-from keras.metrics import AUC
+from scipy import stats
+from sklearn.preprocessing import MinMaxScaler
 
 
 '''~~~~ CLASSES ~~~~'''
@@ -222,6 +223,15 @@ def plot_train_history(history, performance):
     plt.show()
     #####
 
+#rangeNormalize: function to range normalize data
+def rangeNormalize(data, lower, upper): #lower, upper = range
+    scaler = MinMaxScaler(feature_range=(lower,upper))
+    nsamples, nx, ny = data.shape       
+    twoDimData = data.reshape((nsamples,nx*ny)) #reshaping 3d to 2d
+    normalized = scaler.fit_transform(twoDimData)
+    return normalized.reshape(nsamples, nx, ny) #reshaping back to 3d
+#####
+
 '''~~~~ end of FUNCTIONS ~~~~'''
 
 
@@ -246,14 +256,17 @@ NUM_NODE = '5 4 2'
 # respectively. At the output layer, it is ReLU.
 
 ACT_FUN = 'relu'                 #Activation function.
-INITZR = 'RandomNormal'           #Initializer
+INITZR = 'RandomNormal'          #Initializer
 LOS_FUN = 'mean_squared_error'
 OPTMZR = 'SGD'
+#zscore normalization has best results
+NORMALIZE = 'z-score' #Options: {Default: 'none', 'range', 'z-score'}
 #add more as needed
 
 #creating parameter dict and saving as csv and bin file
 parameter_dict = {'path_voi':PATH_VOI, 'exp_id':EXP_ID, 'num_node':NUM_NODE, 'act_fun':ACT_FUN,\
-                 'initializer':INITZR, 'loss_fun':LOS_FUN, 'optimizer':OPTMZR, 'path_exp':PATH_EXP}
+                 'initializer':INITZR, 'loss_fun':LOS_FUN, 'optimizer':OPTMZR, 'path_exp':PATH_EXP,\
+                 'normalize':NORMALIZE}
 save_csv_bin(PATH_EXP+'MODEL/parameter.csv', PATH_EXP+'MODEL/parameter.bin', parameter_dict)
 #
 
@@ -286,21 +299,36 @@ test_set_all_xy = np.load(f2).reshape(1092, 56, 56)     #test data, reshaped 109
 test_label_all_xy = np.load(f2)                         #1092 correct labels for test set 30%
 f2.close()
 
+###
+#creating sampleID dict and saving as csv and bin file
+performance_dict = {'train':train_set_all_xy[:2170], 'val':train_set_all_xy[-350:], 'test':test_set_all_xy}
+save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', performance_dict)
+###
+
+'''~~~~ PRE-PROCESS ~~~~'''
+#your code to pre-proces data. Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin
+#Normalize your data 
+if NORMALIZE[0] == 'r':                                         #range normalizing between 0 and 1
+    train_set_all_xy = rangeNormalize(train_set_all_xy, 0, 1)  
+    test_set_all_xy = rangeNormalize(test_set_all_xy, 0, 1)    
+elif NORMALIZE[0] == 'z':                                       #zscore normalizing
+    train_set_all_xy = stats.zscore(train_set_all_xy)   
+    test_set_all_xy = stats.zscore(test_set_all_xy)     
+#
+
+###creating training and validation set
 train_data_xy = train_set_all_xy[:2170]             #creating training data 60%
 train_data_label_xy = train_label_all_xy[:2170]     #creating training labels 60%
 
 validation_set_xy = train_set_all_xy[-350:]         #creating validation data 10%
 validation_label_xy = train_label_all_xy[-350:]     #creating validation labels 10%
 
-###
-#creating sampleID dict and saving as csv and bin file
-performance_dict = {'train':train_data_xy, 'val':validation_set_xy, 'test':test_set_all_xy}
-save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', performance_dict)
-###
-
-'''~~~~ PRE-PROCESS ~~~~'''
-#your code to pre-proces data. Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin
-
+###Exports processed data to dataPreProcess.bin
+with open(PATH_EXP+'INPUT/PROCESSED/dataPreProcess.bin', 'wb') as file:
+    for i in train_set_all_xy:
+            file.write(bytes(i))                   #writes to bin
+    for j in test_set_all_xy:
+            file.write(bytes(j))                   #writes to bin
 
 '''~~~~ TRAINING ~~~~'''
 #your code to train the model. Export trained model parameters to load later as model.bin

@@ -6,3 +6,4 @@ initializer,RandomNormal
 loss_fun,mean_squared_error
 optimizer,SGD
 path_exp,CadLung/EXP1/
+normalize,z-score
