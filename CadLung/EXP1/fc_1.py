@@ -67,6 +67,8 @@ def delete_old_data():
         os.remove(PATH_EXP+'INPUT/sampleID.csv')
     if (os.path.exists(PATH_EXP+'INPUT/sampleID.bin')):
         os.remove(PATH_EXP+'INPUT/sampleID.bin')
+    if(os.path.exists(PATH_EXP+'INPUT/PROCESSED/dataPreProcess.bin')):
+        os.remove(PATH_EXP+'INPUT/PROCESSED/dataPreProcess.bin')
 
     if (os.path.exists(PATH_EXP+'MODEL/model.h5')):
         os.remove(PATH_EXP+'MODEL/model.h5')
@@ -332,11 +334,28 @@ with open(PATH_EXP+'INPUT/PROCESSED/dataPreProcess.bin', 'wb') as file:
 
 '''~~~~ TRAINING ~~~~'''
 #your code to train the model. Export trained model parameters to load later as model.bin
-model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=100, validation_data=(validation_set_xy, validation_label_xy))      
+#https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/ModelCheckpoint
+EPOCHS = 100
+#setting up checkpoint to save the best set of weights during the training
+checkpoint_filepath = PATH_EXP+'MODEL/weights.hdf5'
+model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    save_weights_only=True,
+    monitor='val_loss',
+    mode='min',
+    save_best_only=True)
+
 #training model and saving history
 #saving history is required to plot performance png
+model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=EPOCHS,\
+                          validation_data=(validation_set_xy, validation_label_xy),\
+                          callbacks=[model_checkpoint_callback])
 
-model.save(PATH_EXP+'MODEL/model.h5')       #Exporting Model as h5 file
+#The model weights (that are considered the best) are loaded into the model.
+model.load_weights(checkpoint_filepath)
+
+#Exporting Model as h5 file
+model.save(PATH_EXP+'MODEL/model.h5')
 
 '''~~~~ TESTING ~~~~'''
 #your code to test the model. Export predictions with sample-IDs as testOutput.bin
@@ -347,7 +366,7 @@ dependencies = {
     'specificity': specificity,
     'f1': f1
 }
-model = keras.models.load_model(PATH_EXP+'MODEL/model.h5', custom_objects=dependencies)      #Importing Model
+model = keras.models.load_model(PATH_EXP+'MODEL/model.h5', custom_objects=dependencies) #Importing Model
 
 #predicted test values (1092) 1 nodes per prediction need to round and reshape for labels
 test_pred_all_xy = []
