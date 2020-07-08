@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30204.135
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "SELU_CAR20_BROWN", "SELU_CAR20_BROWN\SELU_CAR20_BROWN.pyproj", "{A8F4A1F8-E2BA-4B2E-9FEA-02B8D014FC59}"
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "CadLung", "CadLung\CadLung.pyproj", "{A8F4A1F8-E2BA-4B2E-9FEA-02B8D014FC59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
