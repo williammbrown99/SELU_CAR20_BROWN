@@ -234,6 +234,18 @@ def rangeNormalize(data, lower, upper): #lower, upper = range
     return normalized.reshape(nsamples, nx, ny) #reshaping back to 3d
 #####
 
+#positiveNormalize: function to move data to the positive region
+def positiveNormalize(data):
+    nsamples, nx, ny = data.shape       
+    twoDimData = data.reshape((nsamples,nx*ny)) #reshaping 3d to 2d
+    for i in range(len(twoDimData)):
+        dataMin = min(twoDimData[i])
+        if(dataMin < 0.0001):
+            scal = 0.0001-dataMin
+            twoDimData[i] = twoDimData[i] + scal    #shifting elements to make minimum 0.0001
+    postNorm = twoDimData.reshape(nsamples, nx, ny) #reshaping back to 3d
+    return postNorm
+
 '''~~~~ end of FUNCTIONS ~~~~'''
 
 
@@ -309,9 +321,13 @@ save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', perfo
 
 '''~~~~ PRE-PROCESS ~~~~'''
 #your code to pre-proces data. Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin
+#moving to the positive region of the feature space. Minimum value will be greater than or equal to "0.0001".
+train_set_all_xy = positiveNormalize(train_set_all_xy)    #(data, min, max) 
+test_set_all_xy = positiveNormalize(test_set_all_xy)
+
 #Normalize your data 
 if NORMALIZE[0] == 'r':                                         #range normalizing between 0 and 1
-    train_set_all_xy = rangeNormalize(train_set_all_xy, 0, 1)  
+    train_set_all_xy = rangeNormalize(train_set_all_xy, 0, 1)    #(data, min, max) 
     test_set_all_xy = rangeNormalize(test_set_all_xy, 0, 1)    
 elif NORMALIZE[0] == 'z':                                       #zscore normalizing
     train_set_all_xy = stats.zscore(train_set_all_xy)   
