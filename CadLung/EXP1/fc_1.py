@@ -323,7 +323,7 @@ save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', perfo
 #Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin
 #moving to the positive region of the feature space.
 #Minimum value will be greater than or equal to "0.0001".
-train_set_all_xy = positiveNormalize(train_set_all_xy)    #(data, min, max)
+train_set_all_xy = positiveNormalize(train_set_all_xy)
 test_set_all_xy = positiveNormalize(test_set_all_xy)
 
 #Normalize your data
@@ -366,7 +366,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 #saving history is required to plot performance png
 model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=EPOCHS,\
                           validation_data=(validation_set_xy, validation_label_xy),\
-                          callbacks=[model_checkpoint_callback])
+                          callbacks=[model_checkpoint_callback], verbose=2)
 
 #The model weights (that are considered the best) are loaded into the model.
 model.load_weights(checkpoint_filepath)
