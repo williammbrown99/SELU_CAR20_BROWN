@@ -12,7 +12,6 @@ Read the coding standarts and best practice notes.
 ~~~~ HELP
 #Enter your notes to help to understand your code here
 ~~~~"""
-
 import os
 import tensorflow as tf
 import numpy as np
@@ -42,8 +41,14 @@ def save_csv_bin(path_csv, path_bin, data_dict):
         for i in data_dict.values():
             if type(i) == type(str()):
                 file.write(i.encode('ascii'))   #converts strings to ascii and writes to bin
+            elif type(i) == type(tuple()):
+                for j in i:
+                    if type(j) == type(str()):
+                        file.write(j.encode('ascii'))
+                    else:
+                        file.write(bytes(j))    #writes to bin
             else:
-                file.write(i)                   #writes to bin
+                file.write(bytes(i))
 #####
 
 def delete_old_data():
@@ -193,7 +198,7 @@ def plot_train_history(history, performance):
     axs[4].plot(epochs, f1, 'blue', label='Training f1')
     axs[4].plot(epochs, val_f1, 'orange', label='Validation f1')
     axs[4].legend()
-
+    
     #plotting test performance metrics bar chart
     x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
     x_pos = [i for i, _ in enumerate(x)]
@@ -250,15 +255,15 @@ EXP_ID = 'Exp_1'
 #NUM_NODE = (5, 4, 2): Two hidden layers with 5 and 4 nodes, respectively.
 #The output layer has 2 nodes.
 
-NUM_NODE = '5 4 2'
+NUM_NODE = (5, 4, 1)
 
 #Model Parameters
 #ACT_FUN = ('sigmoid', 'selu', 'relu'):
 #The activation functions in the first and the second hidden layers are Sigmoid and SeLU,
 # respectively. At the output layer, it is ReLU.
 
-ACT_FUN = 'relu'                 #Activation function.
-INITZR = 'RandomNormal'          #Initializer
+ACT_FUN = ('sigmoid', 'selu', 'relu')   #Activation function.
+INITZR = 'random_normal'          #Initializer
 LOS_FUN = 'mean_squared_error'
 OPTMZR = 'SGD'
 #zscore normalization has best results
@@ -278,15 +283,15 @@ model = keras.Sequential([
     #input layer, flattening images to one-dimensional array
     keras.layers.Flatten(input_shape=(56, 56)),
     #hidden layer, sigmoid activation function
-    keras.layers.Dense(5, activation='sigmoid', kernel_initializer='random_normal'),
+    keras.layers.Dense(NUM_NODE[0], activation=ACT_FUN[0], kernel_initializer=INITZR),
     #second hidden layer, selu activation function
-    keras.layers.Dense(4, activation='selu', kernel_initializer='random_normal'),
+    keras.layers.Dense(NUM_NODE[1], activation=ACT_FUN[1], kernel_initializer=INITZR),
     #1 output layer, relu activation function
-    keras.layers.Dense(1, activation='relu', kernel_initializer='random_normal')
+    keras.layers.Dense(NUM_NODE[2], activation=ACT_FUN[2], kernel_initializer=INITZR)
 ])
 
-model.compile(optimizer='SGD',                  #optimizer: stochastic gradient descent
-              loss='mean_squared_error',        #loss function: mean squared error
+model.compile(optimizer=OPTMZR,                  #optimizer: stochastic gradient descent
+              loss=LOS_FUN,        #loss function: mean squared error
               metrics=[AUC, sensitivity, specificity, f1]) #loading custom metrics from functions
 
 '''~~~~ LOAD DATA ~~~~'''
@@ -366,7 +371,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 #saving history is required to plot performance png
 model_history = model.fit(train_data_xy, train_data_label_xy, batch_size=32, epochs=EPOCHS,\
                           validation_data=(validation_set_xy, validation_label_xy),\
-                          callbacks=[model_checkpoint_callback], verbose=2)
+                          callbacks=[model_checkpoint_callback], verbose=0)
 
 #The model weights (that are considered the best) are loaded into the model.
 model.load_weights(checkpoint_filepath)
