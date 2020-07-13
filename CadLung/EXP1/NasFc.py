@@ -3,7 +3,7 @@ SELU - CAR System -- LBRN 2020 Virtual Summer Program
 Mentor: Dr. Omer Muhammet Soysal
 Last Modified on: July 9 2020
 
-Authors: 
+Authors:
 Date:
 Distribution: Participants of SELU - CAR System -- LBRN 2020 Virtual Summer Program
 
@@ -28,6 +28,7 @@ from keras import models as kModels
 from keras.layers import Activation, Dense, Flatten
 from keras.metrics import AUC, FalsePositives, TrueNegatives, Precision, Recall
 from keras.models import Sequential
+from scipy import stats
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,14 +39,19 @@ import numpy as np
 
 
 '''~~~~ FUNCTIONS ~~~~'''
-
-
-
+def rangeNormalize(data, lower, upper): #lower, upper = range
+    """function to range normalize data"""
+    scaler = MinMaxScaler(feature_range=(lower, upper))
+    nsamples, nx, ny = data.shape
+    twoDimData = data.reshape((nsamples, nx*ny)) #reshaping 3d to 2d
+    normalized = scaler.fit_transform(twoDimData)
+    return normalized.reshape(nsamples, nx, ny) #reshaping back to 3d
+#####
 
 '''~~~~ PARAMETERS ~~~~'''
 #Paths
-PATH_VOI = 'INPUT/Voi_Data/'
-PATH_EXP = 'EXP1/'
+PATH_VOI = 'CadLung/INPUT/Voi_Data/'
+PATH_EXP = 'CadLung/EXP1/'
 
 #Data
 NORMALIZE = 'none' #Options: {Default: 'none', 'range', 'z-score'}
@@ -61,7 +67,7 @@ checkpoint_filepath = PATH_EXP+'CHKPNT/'
 modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
                                                save_weights_only=True,
                                                monitor='val_acc',
-                                               model='max',
+                                               mode='max',
                                                save_best_only=True)
 clBacks = [modelChkPnt_cBk]
 
@@ -72,6 +78,8 @@ ACT_FUN = (None,'sigmoid','sigmoid','sigmoid','relu')
 
 #Export Parameters into parameter.tf
 ''' COMPLETE THE CODE '''
+
+
 
 '''~~~~ LOAD DATA ~~~~'''
 #VOI Data
@@ -92,18 +100,20 @@ with open(PATH_VOI + DataSet_xy + '.bin','rb') as f2:
 
 
 '''~~~~ PRE-PROCESS ~~~~'''
-#your code to pre-proces data. Export pre-processed data if takes too long to create as a binary file dataPreProcess.bin  
-train_set_all_xy = np.reshape(train_set_all_xy, (train_set_all_xy.shape[0], 1, train_set_all_xy.shape[1]))    #Dim1: Batch, (Dim2,Dim3): Flattened images
-test_set_all_xy = np.reshape(test_set_all_xy, (test_set_all_xy.shape[0], 1, test_set_all_xy.shape[1]))        #Dim1: Batch, (Dim2,Dim3): Flattened images
+#your code to pre-proces data. Export pre-processed data if takes too long to create as a binary file dataPreProcess.bin
+#Dim1: Batch, (Dim2,Dim3): Flattened images
+train_set_all_xy = np.reshape(train_set_all_xy, (train_set_all_xy.shape[0], 1, train_set_all_xy.shape[1]))
+#Dim1: Batch, (Dim2,Dim3): Flattened images
+test_set_all_xy = np.reshape(test_set_all_xy, (test_set_all_xy.shape[0], 1, test_set_all_xy.shape[1]))
 #train_label_all_xy = ks.utils.to_categorical(train_label_all_xy)
-
+print(train_set_all_xy.shape)
 #Normalize your data 
 if NORMALIZE[0] == 'r':
-    train_set_all_xy = ... #call normalizing function or write your inline code here
-    test_set_all_xy = ... #call normalizing function or write your inline code here
+    train_set_all_xy = rangeNormalize(train_set_all_xy, 0, 1)
+    test_set_all_xy = rangeNormalize(test_set_all_xy, 0, 1)
 elif NORMALIZE[0] == 'z':
-    train_set_all_xy = ... #call normalizing function or write your inline code here
-    test_set_all_xy = ... #call normalizing function or write your inline code here
+    train_set_all_xy = stats.zscore(train_set_all_xy)
+    test_set_all_xy = stats.zscore(test_set_all_xy)
 #
 
 
@@ -118,7 +128,7 @@ bestAcc = 0 #best accuracy score
 
 bestModel = keras.Sequential([
     kLyr.Flatten(),
-    kLyr.Dense(1, activation=ACT_FUN[1], kernel_initializer='random_normal'),             #1st hidden layer
+    kLyr.Dense(1, activation=ACT_FUN[1], kernel_initializer='random_normal'), #1st hidden layer
     kLyr.Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal') #output layer
 ])
 
@@ -139,16 +149,16 @@ for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop
         modelFitTmp = modelTmp.fit(train_data_xy, train_data_label_xy, batch_size=BATCH_SIZE, epochs=EPOCHS, verbose=0, callbacks = clBacks, validation_split = VAL_SPLIT)
 
         #Get the best weights
-        ''' !!!!!! THIS SECTION NEEDS TO BE COMPLETED   !!!!!! 
-        Write the code to get the best set of weights "modelFitTmp" out of all epochs
+        ''' #!!!!!! THIS SECTION NEEDS TO BE COMPLETED   !!!!!! 
+        #Write the code to get the best set of weights "modelFitTmp" out of all epochs
         '''
 
 
 
         #
 
-        ''' !!!!!! THIS SECTION NEEDS TO BE MODIFIED !!!!!!   
-        After pulling out the best weights and the corresponding model "modelFitTmp", compare against the last "bestAcc"
+        ''' #!!!!!! THIS SECTION NEEDS TO BE MODIFIED !!!!!!   
+        #After pulling out the best weights and the corresponding model "modelFitTmp", compare against the last "bestAcc"
         '''
         if modelFitTmp.history['val_accuracy'] >= bestAcc:   #update the best model and continue adding a node to this layer
             bestAcc = modelFit.history['val_accuracy']
@@ -160,38 +170,37 @@ for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop
     #for j
 #for hL
 
-
 #Export trained model parameters into model.tf to load later
-''' COMPLETE THE CODE '''
+''' #COMPLETE THE CODE '''
 
 
 
-'''~~~~ TESTING ~~~~'''
+'''#~~~~ TESTING ~~~~'''
 ''' COMPLETE THE CODE '''
 
 
 
 
 #Export predictions with sample-IDs into testOutput.tf
-''' COMPLETE THE CODE '''
+''' #COMPLETE THE CODE '''
 
 
-'''~~~~ EVALUATION ~~~~'''
+'''#~~~~ EVALUATION ~~~~'''
 #Evaluate performance of the model
-''' COMPLETE THE CODE '''
+''' #COMPLETE THE CODE '''
 
 
 
 #Export performance metrics into performance.tf
-''' COMPLETE THE CODE '''
+''' #COMPLETE THE CODE '''
 
 
 '''~~~~ VISUALIZE ~~~~'''
 #Visualize performance metrics
-''' COMPLETE THE CODE '''
+''' #COMPLETE THE CODE '''
 
 #Export charts
-''' COMPLETE THE CODE '''
+''' #COMPLETE THE CODE '''
 
 
 print('Done!')
