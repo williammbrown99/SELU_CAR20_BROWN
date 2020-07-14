@@ -158,7 +158,8 @@ def f1(y_true, y_pred):
 
 def plot_train_history(history, performance):
     """function to plot model performance"""
-    fig, axs = plt.subplots(6)
+    fig, axs = plt.subplots(5)
+    fig.suptitle('Z-score and Positive Normalized')
 
     #loading model history metrics
     loss = history.history['loss']
@@ -174,19 +175,19 @@ def plot_train_history(history, performance):
 
     epochs = range(len(loss))   #number of epochs
 
-    #plotting training and validation loss
-    axs[0].plot(epochs, loss, 'yellow', label='Training loss')
-    axs[0].plot(epochs, val_loss, 'purple', label='Validation loss')
+    #plotting training and validation AUC
+    axs[0].plot(epochs, auc, 'blue', label='Training AUC')
+    axs[0].plot(epochs, val_auc, 'orange', label='Validation AUC')
     axs[0].legend()
 
-    #plotting training and validation AUC
-    axs[1].plot(epochs, auc, 'blue', label='Training AUC')
-    axs[1].plot(epochs, val_auc, 'orange', label='Validation AUC')
+    #plotting training and validation sensitivity
+    axs[1].plot(epochs, sensitivity, 'red', label='Training sensitivity')
+    axs[1].plot(epochs, val_sensitivity, 'green', label='Validation sensitivity')
     axs[1].legend()
 
-    #plotting training and validation sensitivity
-    axs[2].plot(epochs, sensitivity, 'red', label='Training sensitivity')
-    axs[2].plot(epochs, val_sensitivity, 'green', label='Validation sensitivity')
+    #plotting training and validation f1 score
+    axs[2].plot(epochs, f1, 'blue', label='Training f1')
+    axs[2].plot(epochs, val_f1, 'orange', label='Validation f1')
     axs[2].legend()
 
     #plotting training and validation specificity
@@ -194,23 +195,23 @@ def plot_train_history(history, performance):
     axs[3].plot(epochs, val_specificity, 'purple', label='Validation specificity')
     axs[3].legend()
 
-    #plotting training and validation f1 score
-    axs[4].plot(epochs, f1, 'blue', label='Training f1')
-    axs[4].plot(epochs, val_f1, 'orange', label='Validation f1')
+    #plotting training and validation loss
+    axs[4].plot(epochs, loss, 'yellow', label='Training loss')
+    axs[4].plot(epochs, val_loss, 'purple', label='Validation loss')
     axs[4].legend()
     
     #plotting test performance metrics bar chart
-    x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
-    x_pos = [i for i, _ in enumerate(x)]
+    #x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
+    #x_pos = [i for i, _ in enumerate(x)]
 
-    axs[5].bar(x_pos, performance, color=('green', 'red', 'blue', 'yellow'))
-    axs[5].set_ylim([0, 1])     #setting performance score range
-    axs[5].set_xticks(x_pos)
-    axs[5].set_xticklabels(x)   #setting performance labels
+    #axs[5].bar(x_pos, performance, color=('green', 'red', 'blue', 'yellow'))
+    #axs[5].set_ylim([0, 1])     #setting performance score range
+    #axs[5].set_xticks(x_pos)
+    #axs[5].set_xticklabels(x)   #setting performance labels
 
-    fig.tight_layout(pad=0.25)  #adding more space to figure
+    fig.tight_layout()  #adding more space to figure
 
-    plt.savefig(PATH_EXP+'OUTPUT/performance.png')  #Exporting performance chart
+    plt.savefig(PATH_EXP+'OUTPUT/NORMALIZATIONS/z-scoreAndPositiveNormalized.png')  #Exporting performance chart
 
     plt.show()
     #####
@@ -268,6 +269,7 @@ LOS_FUN = 'mean_squared_error'
 OPTMZR = 'SGD'
 #zscore normalization has best results
 NORMALIZE = 'z-score' #Options: {Default: 'none', 'range', 'z-score'}
+POSITIVE_NORMALIZE = 'yes'    #Options: {Default: 'no', 'yes'}
 #add more as needed
 
 #creating parameter dict and saving as csv and bin file
@@ -326,10 +328,12 @@ save_csv_bin(PATH_EXP+'INPUT/sampleID.csv', PATH_EXP+'INPUT/sampleID.bin', perfo
 '''~~~~ PRE-PROCESS ~~~~'''
 #your code to pre-proces data.
 #Export pre-processed data if takes too long to repeat as a binary file dataPreProcess.bin
+
 #moving to the positive region of the feature space.
 #Minimum value will be greater than or equal to "0.0001".
-train_set_all_xy = positiveNormalize(train_set_all_xy)
-test_set_all_xy = positiveNormalize(test_set_all_xy)
+if POSITIVE_NORMALIZE[0] == 'y':
+    train_set_all_xy = positiveNormalize(train_set_all_xy)
+    test_set_all_xy = positiveNormalize(test_set_all_xy)
 
 #Normalize your data
 if NORMALIZE[0] == 'r':                                         #range normalizing between 0 and 1
