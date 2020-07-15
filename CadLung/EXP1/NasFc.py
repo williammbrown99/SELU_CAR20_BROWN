@@ -155,15 +155,15 @@ numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1) #[0 0 0 0] 1st one is for 
 
 #Searching the best network architecture
 for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
-    for j in range(2,MAX_NUM_NODES[hL]):   #Node loop   (2 to 6), 3 times
+    for nodes in range(2,MAX_NUM_NODES[hL]):   #Node loop   (2 to 6), 3 times
         numNodeLastHidden[hL] += 1  #A new node added to the current layer [0 0 0]
         #Re-create the temp model with a new node at the layer
         modelTmp = keras.Sequential()   #initialize temporary model
         modelTmp.add(Flatten())         #Input layer
 
         for i in range(hL):             #Adds number of hidden layers
-            modelTmp.add(Dense(int(numNodeLastHidden[hL]), activation=ACT_FUN[hL], \
-                           kernel_initializer='random_normal'))
+            modelTmp.add(Dense(nodes, activation=ACT_FUN[hL], \
+                           kernel_initializer='random_normal')) #int(numNodeLastHidden[hL])
         
         #output layer
         modelTmp.add(Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal'))  #output layer
@@ -187,7 +187,7 @@ for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
         else:   #adding a new node did not improve the performance. Stop adding a new node to this layer
             break
         #
-    #for j
+    #for nodes
 #for hL
 
 #Export trained model parameters into model.tf to load later
@@ -211,6 +211,7 @@ print('Test Accuracy: {}'.format(testAcc))
 
 #Export predictions with sample-IDs into testOutput.tf
 ''' #COMPLETE THE CODE '''
+
 
 
 '''#~~~~ EVALUATION ~~~~'''
