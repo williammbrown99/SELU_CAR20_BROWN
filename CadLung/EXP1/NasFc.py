@@ -18,7 +18,7 @@ HELP
 '''
 
 '''~~~~ IMPORTS ~~~~'''
-#import os
+import os
 #import keras as ks
 #from keras import backend as k
 import keras
@@ -36,6 +36,7 @@ from keras.models import Model
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+import shutil
 
 '''~~~~ CLASSES ~~~~'''
 
@@ -66,6 +67,8 @@ METRICS=['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegativ
 LOSS_F = 'mean_squared_error'
 OPT_M = 'SGD'
 checkpoint_filepath = PATH_EXP+'CHKPNT/bestWeights.hdf5'
+bestModel_filepath = PATH_EXP+'MODEL/bestModel.h5'
+bestWeights_filepath = PATH_EXP+'MODEL/bestWeights.hdf5'
 modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
                                                save_weights_only=True,
                                                monitor='val_accuracy',
@@ -125,15 +128,28 @@ test_set_all_xy = np.reshape(test_set_all_xy, (test_set_all_xy.shape[0], 1, test
 #Initial Training
 bestAcc = 0 #best accuracy score
 
-bestModel = keras.Sequential([
-    Flatten(),
-    Dense(1, activation=ACT_FUN[1], kernel_initializer='random_normal'), #1st hidden layer
-    Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal') #output layer
-])
+if os.path.exists(bestModel_filepath):
+    bestModel = keras.models.load_model(bestModel_filepath) #Loading best Model
+    bestModel.load_weights(bestWeights_filepath)
+else:
+    bestModel = keras.Sequential([
+        Flatten(),
+        Dense(1, activation=ACT_FUN[1], kernel_initializer='random_normal'), #1st hidden layer
+        Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal') #output layer
+    ])
 
-bestModel.compile(loss=LOSS_F, optimizer=OPT_M, metrics=METRICS)
+    bestModel.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy'])#METRICS)
 
-#modelFit = bestModel.fit(train_set_all_xy, train_label_all_xy, epochs=EPOCHS,verbose=0,validation_split = VAL_SPLIT)
+    modelFit = bestModel.fit(train_set_all_xy, train_label_all_xy, epochs=EPOCHS,verbose=0,validation_split = VAL_SPLIT)
+
+#making initial prediction on test set
+init_pred = []
+for i in bestModel.predict(test_set_all_xy).reshape(test_label_all_xy.shape[0]):  #reshape from (1092, 1) to (1092)
+    init_pred.append(round(i))
+initAcc = accuracy_score(test_label_all_xy, init_pred)
+
+print(bestModel.summary())  #Printing model structure
+print('Initial Accuracy: {}'.format(initAcc))   #Printing initial accuracy
 
 numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1) #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
 
@@ -147,10 +163,10 @@ for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
 
         for i in range(hL):             #Adds number of hidden layers
             modelTmp.add(Dense(int(numNodeLastHidden[hL]), activation=ACT_FUN[hL], \
-                           kernel_initializer='random_normal'))  #2 nodes, only recieves input from input layer
+                           kernel_initializer='random_normal'))
         
         #output layer
-        modelTmp.add(Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal'))
+        modelTmp.add(Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal'))  #output layer
 
 
         modelTmp.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy']) #, metrics=METRICS)
@@ -165,6 +181,7 @@ for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
         #After pulling out the best weights and the corresponding model "modelFitTmp", compare against the last "bestAcc"
         if max(modelFitTmp.history['val_accuracy']) >= bestAcc:   #update the best model and continue adding a node to this layer
             bestAcc = max(modelFitTmp.history['val_accuracy'])
+            shutil.move(checkpoint_filepath, bestWeights_filepath)  #saving best weights for best model
             bestModel = modelTmp
             del modelTmp    #WHY ?
         else:   #adding a new node did not improve the performance. Stop adding a new node to this layer
@@ -175,20 +192,21 @@ for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
 
 #Export trained model parameters into model.tf to load later
 ''' #COMPLETE THE CODE '''
-
+bestModel.save(bestModel_filepath)  #saving model
 
 
 '''#~~~~ TESTING ~~~~'''
 ''' COMPLETE THE CODE '''
-bestModel.load_weights(checkpoint_filepath)
+bestModel.load_weights(bestWeights_filepath)
 
+#making test prediction
 test_pred = []
 for i in bestModel.predict(test_set_all_xy).reshape(test_label_all_xy.shape[0]):  #reshape from (1092, 1) to (1092)
     test_pred.append(round(i))
 testAcc = accuracy_score(test_label_all_xy, test_pred)
 
+print(bestModel.summary())  #Printing new model structure
 print('Test Accuracy: {}'.format(testAcc))
-print(bestModel.summary())
 
 
 #Export predictions with sample-IDs into testOutput.tf
