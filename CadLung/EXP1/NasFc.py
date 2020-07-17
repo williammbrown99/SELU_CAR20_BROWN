@@ -66,7 +66,7 @@ BATCH_SIZE = 32
 METRICS=['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
 LOSS_F = 'mean_squared_error'
 OPT_M = 'SGD'
-checkpoint_filepath = PATH_EXP+'CHKPNT/bestWeights.hdf5'
+checkpoint_filepath = PATH_EXP+'CHKPNT/checkpoint.hdf5'
 bestModel_filepath = PATH_EXP+'MODEL/bestModel.h5'
 bestWeights_filepath = PATH_EXP+'MODEL/bestWeights.hdf5'
 modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
@@ -128,7 +128,7 @@ test_set_all_xy = np.reshape(test_set_all_xy, (test_set_all_xy.shape[0], 1, test
 #Initial Training
 bestAcc = 0 #best accuracy score
 
-if os.path.exists(bestModel_filepath):
+if os.path.exists(bestWeights_filepath) and os.path.exists(bestModel_filepath):
     bestModel = keras.models.load_model(bestModel_filepath) #Loading best Model
     bestModel.load_weights(bestWeights_filepath)
 else:
@@ -155,15 +155,15 @@ numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1) #[0 0 0 0] 1st one is for 
 
 #Searching the best network architecture
 for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
-    for nodes in range(2,MAX_NUM_NODES[hL]):   #Node loop   (2 to 6), 3 times
+    for j in range(2,MAX_NUM_NODES[hL]):   #Node loop   (2 to 6), 3 times
         numNodeLastHidden[hL] += 1  #A new node added to the current layer [0 0 0]
         #Re-create the temp model with a new node at the layer
         modelTmp = keras.Sequential()   #initialize temporary model
         modelTmp.add(Flatten())         #Input layer
 
-        for i in range(hL):             #Adds number of hidden layers
-            modelTmp.add(Dense(nodes, activation=ACT_FUN[hL], \
-                           kernel_initializer='random_normal')) #int(numNodeLastHidden[hL])
+        for iL in range(1,hL+1):             #Adds number of hidden layers
+            modelTmp.add(Dense(int(numNodeLastHidden[iL]), activation=ACT_FUN[hL], \
+                           kernel_initializer='random_normal')) #int(numNodeLastHidden[iL])
         
         #output layer
         modelTmp.add(Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal'))  #output layer
@@ -187,7 +187,7 @@ for hL in range(1,lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
         else:   #adding a new node did not improve the performance. Stop adding a new node to this layer
             break
         #
-    #for nodes
+    #for j
 #for hL
 
 #Export trained model parameters into model.tf to load later
