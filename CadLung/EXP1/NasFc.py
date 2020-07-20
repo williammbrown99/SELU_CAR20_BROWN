@@ -20,6 +20,7 @@ import shutil
 import keras
 
 from keras import callbacks as cB
+from keras import regularizers as rg
 from keras.layers import Dense, Flatten
 from keras.metrics import AUC, FalsePositives, TrueNegatives, Precision, Recall
 from scipy import stats
@@ -47,6 +48,8 @@ NORMALIZE = 'z-score' #Options: {Default: 'none', 'range', 'z-score'}
 
 #Model
 VAL_SPLIT = 0.15
+regRate = 0.001
+regFn = rg.l2(regRate)
 EPOCHS = 100
 BATCH_SIZE = 32
 METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
@@ -142,8 +145,8 @@ if os.path.exists(bestWeights_filepath) and os.path.exists(bestModel_filepath):
 else:
     bestModel = keras.Sequential([
         Flatten(),
-        Dense(1, activation=ACT_FUN[1], kernel_initializer='random_normal'), #1st hidden layer
-        Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal') #output layer
+        Dense(1, activation=ACT_FUN[1], kernel_initializer='random_normal'),#, kernel_regularizer = regFn), #1st hidden layer
+        Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal')#, kernel_regularizer = regFn) #output layer
     ])
 
     bestModel.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy'])#METRICS)
@@ -174,10 +177,10 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
 
         for iL in range(1, hL+1):             #Adds number of hidden layers
             modelTmp.add(Dense(int(numNodeLastHidden[iL]), activation=ACT_FUN[hL], \
-                           kernel_initializer='random_normal')) #int(numNodeLastHidden[iL])
+                           kernel_initializer='random_normal'))#, kernel_regularizer = regFn))
 
         #output layer
-        modelTmp.add(Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal'))
+        modelTmp.add(Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal'))#, kernel_regularizer = regFn))
 
 
         modelTmp.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy']) #, metrics=METRICS)
