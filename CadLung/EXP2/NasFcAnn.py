@@ -47,7 +47,7 @@ class NasFcAnn(object):
 
     #Model Parameters
     valSplit = 0.15
-    epochs = 100
+    epochs = 10
     batchSize = 32
     METRICS=['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
     lossFn = 'mean_squared_error'
@@ -63,7 +63,7 @@ class NasFcAnn(object):
     checkpoint_filepath = paths[2]+'/checkpoint.hdf5'
     testWeights_filepath = paths[2]+'/testWeights.hdf5'
     bestModel_filepath = paths[1]+'/MODEL/bestModel.hdf5'
-    performancePng_filepath = paths[1]+'/OUTPUT/bestModelPerformance.png'
+    performancePng_filepath = paths[1]+'/OUTPUT/ModelPerformance.png'
     lenMaxNumHidenLayer = len(maxNumNodes) - 2
     modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
                                                 save_weights_only=True,
@@ -73,10 +73,8 @@ class NasFcAnn(object):
     clBacks = [modelChkPnt_cBk]
 
     def __init__(self,**kwarg):
-        ''' COMPLETE THE CODE '''
-
         #initializations goes here
-
+        self.normalize = kwarg['normalize']
 
     #
 
@@ -110,28 +108,28 @@ class NasFcAnn(object):
 
     #
 
-    def rangeNormalize(data, lower, upper): #lower, upper = range
-        """function to range normalize data"""
-        scaler = MinMaxScaler(feature_range=(lower, upper))
-        normalized = scaler.fit_transform(data)
-        return normalized
-    #
-
-    def positiveNormalize(data):
-        """function to move data to the positive region"""
-        nsamples, nx, ny = data.shape
-        twoDimData = data.reshape((nsamples, nx*ny)) #reshaping 3d to 2d
-        for i in range(len(twoDimData)):
-            dataMin = min(twoDimData[i])
-            if dataMin < 0.0001:
-                scal = 0.0001-dataMin
-                twoDimData[i] = twoDimData[i] + scal    #shifting elements to make minimum 0.0001
-        postNorm = twoDimData.reshape(nsamples, nx, ny) #reshaping back to 3d
-        return postNorm
-    #
-
     def doPreProcess(self,**kwarg):
-        #Normalize your data 
+        #Normalize your data
+        def rangeNormalize(data, lower, upper): #lower, upper = range
+            """function to range normalize data"""
+            scaler = MinMaxScaler(feature_range=(lower, upper))
+            normalized = scaler.fit_transform(data)
+            return normalized
+        #
+
+        def positiveNormalize(data):
+            """function to move data to the positive region"""
+            nsamples, nx, ny = data.shape
+            twoDimData = data.reshape((nsamples, nx*ny)) #reshaping 3d to 2d
+            for i in range(len(twoDimData)):
+                dataMin = min(twoDimData[i])
+                if dataMin < 0.0001:
+                    scal = 0.0001-dataMin
+                    twoDimData[i] = twoDimData[i] + scal    #shifting elements to make minimum 0.0001
+            postNorm = twoDimData.reshape(nsamples, nx, ny) #reshaping back to 3d
+            return postNorm
+        # 
+
         if self.normalize == 'ra':
             self.train_set_all_xy = rangeNormalize(self.train_set_all_xy, 0, 1)
             self.test_set_all_xy = rangeNormalize(self.test_set_all_xy, 0, 1)
@@ -220,6 +218,7 @@ class NasFcAnn(object):
     #
 
     def exportPredict(self,**kwarg):
+        '''COMPLETE'''
         pass
     #
 
@@ -262,7 +261,6 @@ class NasFcAnn(object):
         plt.xticks(x_pos, x)
         plt.title('Model Performance Metrics')
 
-        plt.savefig(self.performancePng_filepath)
         plt.show()
         pass
 
@@ -271,7 +269,16 @@ class NasFcAnn(object):
 
 
     def exportChart(self,**kwarg):
-        ''' COMPLETE THE CODE '''
+        performance = [self.f1score, self.aucRoc, self.sensitivity, self.specificity]
+        x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
+        x_pos = [i for i, _ in enumerate(x)]
+
+        plt.bar(x_pos, performance, color=('green', 'red', 'blue', 'yellow'))
+        plt.ylim([0, 1])     #setting performance score range
+        plt.xticks(x_pos, x)
+        plt.title('Model Performance Metrics')
+
+        plt.savefig(self.performancePng_filepath)
         pass
 
 
