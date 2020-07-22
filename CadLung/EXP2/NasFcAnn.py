@@ -165,12 +165,13 @@ class NasFcAnn(object):
         '''function to find the best model structure'''
         bestAcc = 0 #best accuracy score
         #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
-        numNodeLastHidden = np.zeros(self.lenMaxNumHidenLayer + 1)
+        #numNodeLastHidden = np.zeros(self.lenMaxNumHidenLayer + 1)
+        numNodeLastHidden = [1, 1, 1, 1]    #hidden nodes > 1
 
         #Searching the best network architecture
         for hL in range(1, self.lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
-            for j in range(2, self.maxNumNodes[hL]):   #Node loop   (2 to 6), 3 times
-                numNodeLastHidden[hL] += 1  #A new node added to the current layer [0 0 0]
+            for j in range(2, self.maxNumNodes[hL]+1):   #Node loop   (2 to 6), 3 times
+                numNodeLastHidden[hL] += 1  #A new node added to the current layer [1 1 1]
                 #Re-create the temp model with a new node at the layer
                 modelTmp = keras.Sequential()   #initialize temporary model
                 modelTmp.add(Flatten())         #Input layer
