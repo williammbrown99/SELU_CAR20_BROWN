@@ -16,7 +16,6 @@ CODING NOTES
 HELP
 '''
 import os
-import shutil
 import keras
 
 from keras import callbacks as cB
@@ -38,9 +37,7 @@ import numpy as np
 PATH_VOI = 'CadLung/INPUT/Voi_Data/'
 PATH_EXP = 'CadLung/EXP1/'
 checkpoint_filepath = PATH_EXP+'CHKPNT/checkpoint.hdf5'
-testWeights_filepath = PATH_EXP+'CHKPNT/testWeights.hdf5'
 bestModel_filepath = PATH_EXP+'MODEL/bestModel.h5'
-bestWeights_filepath = PATH_EXP+'MODEL/bestWeights.hdf5'
 performancePng_filepath = PATH_EXP+'OUTPUT/bestModelPerformance.png'
 
 #Data
@@ -139,9 +136,8 @@ test_set_all_xy = np.reshape(test_set_all_xy, (test_set_all_xy.shape[0], 1, test
 #Initial Training
 bestAcc = 0 #best accuracy score
 
-if os.path.exists(bestWeights_filepath) and os.path.exists(bestModel_filepath):
+if os.path.exists(bestModel_filepath):
     bestModel = keras.models.load_model(bestModel_filepath) #Loading best Model
-    bestModel.load_weights(bestWeights_filepath)
 else:
     bestModel = keras.Sequential([
         Flatten(),
@@ -165,11 +161,12 @@ print(bestModel.summary())  #Printing model structure
 print('Initial Accuracy: {}'.format(initAcc))   #Printing initial accuracy
 
 #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
-numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1)
+#numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1)
+numNodeLastHidden = [1, 1, 1, 1]    #hidden node > 1
 
 #Searching the best network architecture
 for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
-    for j in range(2, MAX_NUM_NODES[hL]):   #Node loop   (2 to 6), 3 times
+    for j in range(2, MAX_NUM_NODES[hL]+1):   #Node loop   (2 to 6), 3 times
         numNodeLastHidden[hL] += 1  #A new node added to the current layer [0 0 0]
         #Re-create the temp model with a new node at the layer
         modelTmp = keras.Sequential()   #initialize temporary model
@@ -191,9 +188,9 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
         #After pulling out the best weights and the corresponding model "modelFitTmp",
         #compare against the last "bestAcc"
         if max(modelFitTmp.history['val_accuracy']) > bestAcc:
+            print(max(modelFitTmp.history['val_accuracy']))
             #update the best model and continue adding a node to this layer
             bestAcc = max(modelFitTmp.history['val_accuracy'])
-            shutil.copy(checkpoint_filepath, testWeights_filepath)  #saving weights for test model
             bestModel = modelTmp
             del modelTmp    #WHY ?
         else:   #adding a new node did not improve the performance.
@@ -204,7 +201,7 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
 #for hL
 
 '''#~~~~ TESTING ~~~~'''
-bestModel.load_weights(testWeights_filepath)    #loading test weights
+bestModel.load_weights(checkpoint_filepath)    #loading test weights
 
 #making test prediction
 test_pred = []
@@ -219,7 +216,6 @@ print('Test Accuracy: {}'.format(testAcc))
 #if model performed better than initial, save new one
 if testAcc > initAcc:
     bestModel.save(bestModel_filepath)  #saving best model
-    shutil.copy(testWeights_filepath, bestWeights_filepath)  #saving best weights for best model
 
 #Export predictions with sample-IDs into testOutput.tf
 ''' #COMPLETE THE CODE '''
@@ -229,7 +225,6 @@ if testAcc > initAcc:
 '''#~~~~ EVALUATION ~~~~'''
 #Evaluate performance of the model
 bestModel = keras.models.load_model(bestModel_filepath) #Loading best Model
-bestModel.load_weights(bestWeights_filepath)            #Loading best Weights
 
 #finding best predictions
 best_pred = []
