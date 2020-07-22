@@ -20,7 +20,6 @@ CODING NOTES
 
 '''~~~~ IMPORTS ~~~~'''
 import os
-import shutil
 import keras
 
 from keras import callbacks as cB
@@ -47,7 +46,7 @@ class NasFcAnn(object):
 
     #Model Parameters
     valSplit = 0.15
-    epochs = 10
+    epochs = 100
     batchSize = 32
     METRICS=['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
     lossFn = 'mean_squared_error'
@@ -119,15 +118,12 @@ class NasFcAnn(object):
 
         def positiveNormalize(data):
             """function to move data to the positive region"""
-            nsamples, nx, ny = data.shape
-            twoDimData = data.reshape((nsamples, nx*ny)) #reshaping 3d to 2d
-            for i in range(len(twoDimData)):
-                dataMin = min(twoDimData[i])
+            for i in range(len(data)):
+                dataMin = min(data[i])
                 if dataMin < 0.0001:
                     scal = 0.0001-dataMin
-                    twoDimData[i] = twoDimData[i] + scal    #shifting elements to make minimum 0.0001
-            postNorm = twoDimData.reshape(nsamples, nx, ny) #reshaping back to 3d
-            return postNorm
+                    data[i] = data[i] + scal    #shifting elements to make minimum 0.0001
+            return data
         # 
 
         if self.normalize == 'ra':
@@ -183,10 +179,11 @@ class NasFcAnn(object):
 
                 #After pulling out the best weights and the corresponding model "modelFitTmp",
                 #compare against the last "bestAcc"
-                if max(modelFitTmp.history['val_accuracy']) >= bestAcc:
+
+                if max(modelFitTmp.history['val_accuracy']) > bestAcc:  #must be just '>'
+                    print(max(modelFitTmp.history['val_accuracy']))
                     #update the best model and continue adding a node to this layer
                     bestAcc = max(modelFitTmp.history['val_accuracy'])
-                    shutil.copy(self.checkpoint_filepath, self.testWeights_filepath)  #saving weights for test model
                     self.bestModel = modelTmp
                     del modelTmp    #WHY ?
                 else:   #adding a new node did not improve the performance.
@@ -198,7 +195,7 @@ class NasFcAnn(object):
 
 
     def exportModel(self,**kwarg):
-        self.bestModel.load_weights(self.testWeights_filepath)
+        self.bestModel.load_weights(self.checkpoint_filepath)   #loading best weights
         self.bestModel.save(self.bestModel_filepath)  #saving best model
         pass
 

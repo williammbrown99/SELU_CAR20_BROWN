@@ -190,7 +190,7 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
 
         #After pulling out the best weights and the corresponding model "modelFitTmp",
         #compare against the last "bestAcc"
-        if max(modelFitTmp.history['val_accuracy']) >= bestAcc:
+        if max(modelFitTmp.history['val_accuracy']) > bestAcc:
             #update the best model and continue adding a node to this layer
             bestAcc = max(modelFitTmp.history['val_accuracy'])
             shutil.copy(checkpoint_filepath, testWeights_filepath)  #saving weights for test model
