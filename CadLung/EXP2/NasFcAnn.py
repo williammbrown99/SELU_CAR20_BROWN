@@ -3,22 +3,17 @@ SELU - CAR System -- LBRN 2020 Virtual Summer Program
 Mentor: Dr. Omer Muhammet Soysal
 Last Modified on: July 19 2020
 
-Authors: 
+Authors: William Brown
 Date:
 Distribution: Participants of SELU - CAR System -- LBRN 2020 Virtual Summer Program
 
 CODING NOTES
 - Use relative path
-- Be sure your code is optimized as much as possible. Read the coding standarts and best practice notes.
+- Be sure your code is optimized as much as possible.
+- Read the coding standarts and best practice notes.
+~~~~ HELP  ~~~~
+- Enter your notes to help to understand your code here
 '''
-
-'''~~~~ HELP  ~~~~'''
-#Enter your notes to help to understand your code here
-
-
-
-
-'''~~~~ IMPORTS ~~~~'''
 import os
 import keras
 
@@ -35,56 +30,60 @@ import numpy as np
 
 
 class NasFcAnn(object):
-    ''' COMPLETE THE CODE '''
-    #Add class attributes simple to complex. The following is just a partial list with default values. Add as needed.
+    '''Attributes'''
+    #Add class attributes simple to complex.
+    #The following is just a partial list with default values. Add as needed.
+    name = 'default'
 
     #Path Parameters    #'INPUT/Voi_Data/', 'EXP1/','EXP1/CHKPNT/'
-    paths = ('CadLung/INPUT/Voi_Data/','CadLung/EXP2/','CadLung/EXP2/CHKPNT')
+    paths = ('CadLung/INPUT/Voi_Data/', 'CadLung/EXP2/', 'CadLung/EXP2/CHKPNT')
 
     #Data Parameters
-    normalize =  'zs' #Options: {Default: 'none', 'ra', 'zs', 'pr'}
+    normalize = 'none' #Options: {Default: 'none', 'ra', 'zs', 'pr'}
 
     #Model Parameters
     valSplit = 0.15
     epochs = 100
     batchSize = 32
-    METRICS=['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
+    METRICS = ['accuracy']#, AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
     lossFn = 'mean_squared_error'
     optMthd = 'SGD'
     regRate = 0.001
-    
+
     #Network Architecture Parameters
-    maxNumNodes = (None,6,6,6,1)   #first layer, hidden layers, and output layer. #hidden notes > 1.
-    activationFn = (None,'sigmoid','sigmoid','sigmoid','relu')
+    #first layer, hidden layers, and output layer. #hidden notes > 1.
+    maxNumNodes = (None, 6, 6, 6, 1)
+    activationFn = (None, 'sigmoid', 'sigmoid', 'sigmoid', 'relu')
 
     #derived attributes
     regFn = rg.l2(regRate)
     checkpoint_filepath = paths[2]+'/checkpoint.hdf5'
-    testWeights_filepath = paths[2]+'/testWeights.hdf5'
-    bestModel_filepath = paths[1]+'/MODEL/bestModel.hdf5'
-    performancePng_filepath = paths[1]+'/OUTPUT/ModelPerformance.png'
     lenMaxNumHidenLayer = len(maxNumNodes) - 2
     modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
-                                                save_weights_only=True,
-                                                monitor='val_accuracy',
-                                                mode='max',
-                                                save_best_only=True)
+                                         save_weights_only=True,
+                                         monitor='val_accuracy',
+                                         mode='max',
+                                         save_best_only=True)
     clBacks = [modelChkPnt_cBk]
+    #
 
-    def __init__(self,**kwarg):
-        #initializations goes here
+    def __init__(self, **kwarg):
+        '''Initialization'''
+        self.name = kwarg['name']
         self.normalize = kwarg['normalize']
-
     #
 
-    def exportParam(self,**kwarg):
-        ''' COMPLETE THE CODE '''
+    def exportParam(self, **kwarg):
+        '''function to export parameters to csv file'''
+        parameter_dict = {'Name': self.name, 'Normalization': self.normalize}
+        with open(self.paths[1]+'/MODEL/{}Parameters.csv'.format(self.name), 'w') as file:
+            for key in parameter_dict.keys():
+                file.write("%s,%s\n"%(key, parameter_dict[key]))
         pass
-
-
     #
 
-    def loadData(self,**kwarg):
+    def loadData(self, **kwarg):
+        '''function to load data'''
         #VOI Data
         DataSet_xy = 'data_balanced_6Slices_1orMore_xy'
         #DataSet_xz = 'data_balanced_6Slices_1orMore_xz'
@@ -95,19 +94,21 @@ class NasFcAnn(object):
             self.train_label_all_xy = np.load(f2)
             self.test_set_all_xy = np.load(f2)
             self.test_label_all_xy = np.load(f2)
-        #
         pass
-
     #
 
-    def exportData(self,**kwarg):
-        ''' COMPLETE THE CODE '''
+    def exportData(self, **kwarg):
+        '''function to export data to bin file'''
+        data_dict = {'Training Data': self.train_set_all_xy, 'Testing Data': self.test_set_all_xy}
+        with open(self.paths[1]+'/INPUT/{}Data.bin'.format(self.name), 'wb') as file:
+            for key in data_dict.keys():
+                file.write(key.encode('ascii'))
+                file.write(bytes(data_dict[key]))
         pass
-
-
     #
 
-    def doPreProcess(self,**kwarg):
+    def doPreProcess(self, **kwarg):
+        '''function to do pre-processing on the data'''
         #Normalize your data
         def rangeNormalize(data, lower, upper): #lower, upper = range
             """function to range normalize data"""
@@ -124,7 +125,7 @@ class NasFcAnn(object):
                     scal = 0.0001-dataMin
                     data[i] = data[i] + scal    #shifting elements to make minimum 0.0001
             return data
-        # 
+        #
 
         if self.normalize == 'ra':
             self.train_set_all_xy = rangeNormalize(self.train_set_all_xy, 0, 1)
@@ -138,19 +139,30 @@ class NasFcAnn(object):
         #
 
         #Dim1: Batch, (Dim2,Dim3): Flattened images
-        self.train_set_all_xy = np.reshape(self.train_set_all_xy, (self.train_set_all_xy.shape[0], 1, self.train_set_all_xy.shape[1]))
+        self.train_set_all_xy = np.reshape(self.train_set_all_xy,
+                                           (self.train_set_all_xy.shape[0],
+                                            1, self.train_set_all_xy.shape[1]))
+
         #Dim1: Batch, (Dim2,Dim3): Flattened images
-        self.test_set_all_xy = np.reshape(self.test_set_all_xy, (self.test_set_all_xy.shape[0], 1, self.test_set_all_xy.shape[1]))
+        self.test_set_all_xy = np.reshape(self.test_set_all_xy,
+                                          (self.test_set_all_xy.shape[0],
+                                           1, self.test_set_all_xy.shape[1]))
     #
 
-    def exportPreProcData(self,**kwarg):
-        ''' COMPLETE THE CODE '''
+    def exportPreProcData(self, **kwarg):
+        '''function to export pre processed data to bin file'''
+        preProcessedData_dict = {'Processed Training Data': self.train_set_all_xy,
+                                 'Processed Testing Data': self.test_set_all_xy}
+
+        with open(self.paths[1]+'/INPUT/PROCESSED/{}PreProcessedData.bin'.format(self.name), 'wb') as file:
+            for key in preProcessedData_dict.keys():
+                file.write(key.encode('ascii'))
+                file.write(bytes(preProcessedData_dict[key]))
         pass
-
-
     #
 
-    def setUpModelTrain(self,**kwarg):
+    def setUpModelTrain(self, **kwarg):
+        '''function to find the best model structure'''
         bestAcc = 0 #best accuracy score
         #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
         numNodeLastHidden = np.zeros(self.lenMaxNumHidenLayer + 1)
@@ -165,15 +177,16 @@ class NasFcAnn(object):
 
                 for iL in range(1, hL+1):             #Adds number of hidden layers
                     modelTmp.add(Dense(int(numNodeLastHidden[iL]), activation=self.activationFn[hL],
-                                   kernel_initializer='random_normal', kernel_regularizer = self.regFn))
+                                       kernel_initializer='random_normal', kernel_regularizer=self.regFn))
 
                 #output layer
                 modelTmp.add(Dense(1, activation=self.activationFn[-1], kernel_initializer='random_normal',
-                                   kernel_regularizer = self.regFn))
+                                   kernel_regularizer=self.regFn))
 
 
-                modelTmp.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy']) #, metrics=METRICS)
-                modelFitTmp = modelTmp.fit(self.train_set_all_xy, self.train_label_all_xy, batch_size=self.batchSize,
+                modelTmp.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=self.METRICS)
+                modelFitTmp = modelTmp.fit(self.train_set_all_xy, self.train_label_all_xy,
+                                           batch_size=self.batchSize,
                                            epochs=self.epochs, verbose=0, callbacks=self.clBacks,
                                            validation_split=self.valSplit)
 
@@ -192,17 +205,17 @@ class NasFcAnn(object):
                 #
             #for j
         #for hL
-
-
-    def exportModel(self,**kwarg):
-        self.bestModel.load_weights(self.checkpoint_filepath)   #loading best weights
-        self.bestModel.save(self.bestModel_filepath)  #saving best model
         pass
-
-
     #
 
-    def testModel(self,**kwarg):
+    def exportModel(self, **kwarg):
+        '''function to save model to hdf5 file'''
+        self.bestModel.load_weights(self.checkpoint_filepath)   #loading best weights
+        self.bestModel.save(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.name))  #saving best model
+        pass
+    #
+
+    def testModel(self, **kwarg):
         #making test prediction
         self.test_pred = []
         #reshape from (1092, 1) to (1092)
@@ -214,12 +227,16 @@ class NasFcAnn(object):
         print('Test Accuracy: {}'.format(testAcc))
     #
 
-    def exportPredict(self,**kwarg):
-        '''COMPLETE'''
+    def exportPredict(self, **kwarg):
+        '''function to export model predictions to bin file'''
+        with open(self.paths[1]+'/OUTPUT/{}TestPredictions.bin'.format(self.name), 'wb') as file:
+            for i in self.test_pred:
+                file.write(bytes(i))
         pass
     #
 
-    def evaluate(self,**kwarg):
+    def evaluate(self, **kwarg):
+        '''function to evaluate performance of model'''
         #Evaluate performance of the model
         #Calculate F1-score
         self.f1score = f1_score(self.test_label_all_xy, self.test_pred, average='weighted')
@@ -236,19 +253,23 @@ class NasFcAnn(object):
         #Calculate Specificity
         self.specificity = confMatrix[1, 1]/(confMatrix[1, 0]+confMatrix[1, 1])
         print('Specificity: {}'.format(self.specificity))
+
         pass
-
-
     #
 
-    def exportTestPerf(self,**kwarg):
-        ''' COMPLETE THE CODE '''
+    def exportTestPerf(self, **kwarg):
+        '''function to export test performance to csv file'''
+        testPerformance_dict = {'F1 Score': self.f1score, 'AUC': self.aucRoc,
+                                'Sensitivity': self.sensitivity, 'Specificity': self.specificity}
+
+        with open(self.paths[1]+'/OUTPUT/{}TestPerformance.csv'.format(self.name), 'w') as file:
+            for key in testPerformance_dict.keys():
+                file.write("%s,%s\n"%(key, testPerformance_dict[key]))
         pass
-
-
     #
 
-    def visualPerf(self,**kwarg):
+    def visualPerf(self, **kwarg):
+        '''function to visualize model performance'''
         performance = [self.f1score, self.aucRoc, self.sensitivity, self.specificity]
         x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
         x_pos = [i for i, _ in enumerate(x)]
@@ -260,12 +281,10 @@ class NasFcAnn(object):
 
         plt.show()
         pass
-
-
     #
 
-
-    def exportChart(self,**kwarg):
+    def exportChart(self, **kwarg):
+        '''function to save chart as a png file'''
         performance = [self.f1score, self.aucRoc, self.sensitivity, self.specificity]
         x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
         x_pos = [i for i, _ in enumerate(x)]
@@ -275,8 +294,6 @@ class NasFcAnn(object):
         plt.xticks(x_pos, x)
         plt.title('Model Performance Metrics')
 
-        plt.savefig(self.performancePng_filepath)
+        plt.savefig(self.paths[1]+'/OUTPUT/{}ModelPerformance.png'.format(self.name))
         pass
-
-
     #
