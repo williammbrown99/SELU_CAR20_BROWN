@@ -28,7 +28,6 @@ from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_m
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 '''~~~~ CLASSES ~~~~'''
 
 
@@ -78,10 +77,10 @@ def rangeNormalize(data, lower, upper): #lower, upper = range
 
 def plot_performance_metrics(performance):
     '''plotting test performance metrics bar chart'''
-    x = ['F1-score', 'AUC of ROC', 'Sensitivity', 'Specificity']    #creating performance labels
+    x = ['Accuracy', 'AUC of ROC']    #creating performance labels
     x_pos = [i for i, _ in enumerate(x)]
 
-    plt.bar(x_pos, performance, color=('green', 'red', 'blue', 'yellow'))
+    plt.bar(x_pos, performance, color=('blue', 'red'))
     plt.ylim([0, 1])     #setting performance score range
     plt.xticks(x_pos, x)
     plt.title('Best Model Performance Metrics')
@@ -157,16 +156,17 @@ for i in bestModel.predict(test_set_all_xy).reshape(test_label_all_xy.shape[0]):
     init_pred.append(round(i))
 initAcc = accuracy_score(test_label_all_xy, init_pred)
 
+print('Initial Model Structure:')
 print(bestModel.summary())  #Printing model structure
 print('Initial Accuracy: {}'.format(initAcc))   #Printing initial accuracy
 
 #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
-#numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1)
-numNodeLastHidden = [1, 1, 1, 1]    #hidden node > 1
+numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1)
+#numNodeLastHidden = [1, 1, 1, 1]    #hidden node > 1
 
 #Searching the best network architecture
 for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
-    for j in range(2, MAX_NUM_NODES[hL]+1):   #Node loop   (2 to 6), 3 times
+    for j in range(2, MAX_NUM_NODES[hL]):   #Node loop   (2 to 6), 3 times
         numNodeLastHidden[hL] += 1  #A new node added to the current layer [0 0 0]
         #Re-create the temp model with a new node at the layer
         modelTmp = keras.Sequential()   #initialize temporary model
@@ -210,12 +210,16 @@ for i in bestModel.predict(test_set_all_xy).reshape(test_label_all_xy.shape[0]):
     test_pred.append(round(i))
 testAcc = accuracy_score(test_label_all_xy, test_pred)  #test accuracy
 
+print('\nTest Model Structure:')
 print(bestModel.summary())  #Printing new model structure
 print('Test Accuracy: {}'.format(testAcc))
 
 #if model performed better than initial, save new one
 if testAcc > initAcc:
+    print('Test Model Performed Better\n')
     bestModel.save(bestModel_filepath)  #saving best model
+else:
+    print('Test Model Performed Worse\n')
 
 #Export predictions with sample-IDs into testOutput.tf
 ''' #COMPLETE THE CODE '''
@@ -232,21 +236,16 @@ best_pred = []
 for i in bestModel.predict(test_set_all_xy).reshape(test_label_all_xy.shape[0]):
     best_pred.append(round(i))
 
-#Calculate F1-score
-f1score = f1_score(test_label_all_xy, best_pred, average='weighted')
-print('F1-score = {}'.format(f1score))
-#Calculate AUC of ROC
-aucRoc = roc_auc_score(test_label_all_xy, best_pred)
-print('AUC of ROC: {}'.format(aucRoc))
+print('Best Model Evaluation:')
 #Calculate Confusion Matrix
 confMatrix = confusion_matrix(test_label_all_xy, best_pred)
 print('Confusion Matrix : \n', confMatrix)
-#Calculate Sensitivity
-sensitivity = confMatrix[0, 0]/(confMatrix[0, 0]+confMatrix[0, 1])
-print('Sensitivity: {}'.format(sensitivity))
-#Calculate Specificity
-specificity = confMatrix[1, 1]/(confMatrix[1, 0]+confMatrix[1, 1])
-print('Specificity: {}'.format(specificity))
+#Calculate Accuracy
+accuracy = accuracy_score(test_label_all_xy, best_pred)
+print('Accuracy: {}'.format(accuracy))
+#Calculate AUC of ROC
+aucRoc = roc_auc_score(test_label_all_xy, best_pred)
+print('AUC of ROC: {}'.format(aucRoc))
 
 
 #Export performance metrics into performance.tf
@@ -255,7 +254,7 @@ print('Specificity: {}'.format(specificity))
 
 '''~~~~ VISUALIZE ~~~~'''
 #Visualize performance metrics
-performance = [f1score, aucRoc, sensitivity, specificity]
+performance = [accuracy, aucRoc]
 plot_performance_metrics(performance)
 
 
