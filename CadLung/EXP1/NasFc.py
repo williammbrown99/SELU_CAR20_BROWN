@@ -24,7 +24,6 @@ from keras.layers import Dense, Flatten
 from keras.metrics import AUC, FalsePositives, TrueNegatives, Precision, Recall
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,17 +39,19 @@ bestModel_filepath = PATH_EXP+'MODEL/bestModel.h5'
 performancePng_filepath = PATH_EXP+'OUTPUT/bestModelPerformance.png'
 
 #Data
+POSTNORMALIZE = 'y' #Options: {'y', 'n'}
 NORMALIZE = 'z-score' #Options: {Default: 'none', 'range', 'z-score'}
 
 #Model
 VAL_SPLIT = 0.15
 regRate = 0.001
 regFn = rg.l2(regRate)
-EPOCHS = 100
-BATCH_SIZE = 32
+EPOCHS = 10
+BATCH_SIZE = 1
 METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
-LOSS_F = 'mean_squared_error'
-OPT_M = 'SGD'
+LOSS_F = 'binary_crossentropy'
+INITZR = 'random_normal'
+OPT_M = 'adam'
 modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
                                      save_weights_only=True,
                                      monitor='val_accuracy',
@@ -61,7 +62,7 @@ clBacks = [modelChkPnt_cBk]
 #Network Architecture
 MAX_NUM_NODES = (None, 6, 6, 6, 1) #first layer, hidden layers, and output layer. #hidden nodes > 1.
 lenMaxNumHidenLayer = len(MAX_NUM_NODES) - 2    #3
-ACT_FUN = (None, 'sigmoid', 'sigmoid', 'sigmoid', 'relu')
+ACT_FUN = (None, 'relu', 'relu', 'relu', 'sigmoid') #best activation functions for binary classification
 
 #Export Parameters into parameter.tf
 ''' COMPLETE THE CODE '''
@@ -73,6 +74,16 @@ def rangeNormalize(data, lower, upper): #lower, upper = range
     scaler = MinMaxScaler(feature_range=(lower, upper))
     normalized = scaler.fit_transform(data)
     return normalized
+#####
+
+def positiveNormalize(data):
+    """function to move data to the positive region"""
+    for i in range(len(data)):
+        dataMin = min(data[i])
+        if dataMin < 0.0001:
+            scal = 0.0001-dataMin
+            data[i] = data[i] + scal    #shifting elements to make minimum 0.0001
+    return data
 #####
 
 def plot_performance_metrics(performance):
@@ -111,8 +122,10 @@ with open(PATH_VOI + DataSet_xy + '.bin', 'rb') as f2:
 '''~~~~ PRE-PROCESS ~~~~'''
 #your code to pre-proces data.
 #Export pre-processed data if takes too long to create as a binary file dataPreProcess.bin
-
 #Normalize your data
+if POSTNORMALIZE == 'y':
+    train_set_all_xy = positiveNormalize(train_set_all_xy)
+    test_set_all_xy = positiveNormalize(test_set_all_xy)
 if NORMALIZE[0] == 'r':
     train_set_all_xy = rangeNormalize(train_set_all_xy, 0, 1)
     test_set_all_xy = rangeNormalize(test_set_all_xy, 0, 1)
@@ -136,37 +149,35 @@ test_set_all_xy = np.reshape(test_set_all_xy, (test_set_all_xy.shape[0], 1, test
 bestAcc = 0 #best accuracy score
 
 if os.path.exists(bestModel_filepath):
-    bestModel = keras.models.load_model(bestModel_filepath) #Loading best Model
+    #compile=False to load AUC() properly
+    bestModel = keras.models.load_model(bestModel_filepath, custom_objects={'AUC': AUC()}, compile=False) #Loading best Model
+    bestModel.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy', AUC()])#METRICS)
 else:
     bestModel = keras.Sequential([
         Flatten(),
-        Dense(1, activation=ACT_FUN[1], kernel_initializer='random_normal'),#, kernel_regularizer = regFn), #1st hidden layer
-        Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal')#, kernel_regularizer = regFn) #output layer
+        Dense(1, activation=ACT_FUN[1], kernel_initializer=INITZR, kernel_regularizer=regFn), #1st hidden layer
+        Dense(1, activation=ACT_FUN[-1], kernel_initializer=INITZR, kernel_regularizer=regFn) #output layer
     ])
 
-    bestModel.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy'])#METRICS)
+    bestModel.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy', AUC()])#METRICS)
 
     modelFit = bestModel.fit(train_set_all_xy, train_label_all_xy,
                              epochs=EPOCHS, verbose=0, validation_split=VAL_SPLIT)
 
-#making initial prediction on test set
-init_pred = []
-#reshape from (1092, 1) to (1092)
-for i in bestModel.predict(test_set_all_xy).reshape(test_label_all_xy.shape[0]):
-    init_pred.append(round(i))
-initAcc = accuracy_score(test_label_all_xy, init_pred)
+initLoss, initAcc, initAUC = bestModel.evaluate(test_set_all_xy, test_label_all_xy, verbose=0)
 
 print('Initial Model Structure:')
 print(bestModel.summary())  #Printing model structure
 print('Initial Accuracy: {}'.format(initAcc))   #Printing initial accuracy
+print('Initial AUC: {}'.format(initAUC))   #Printing initial accuracy
 
 #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
-numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1)
-#numNodeLastHidden = [1, 1, 1, 1]    #hidden node > 1
+#numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1)
+numNodeLastHidden = [1, 1, 1, 1]    #hidden node > 1
 
 #Searching the best network architecture
-for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
-    for j in range(2, MAX_NUM_NODES[hL]):   #Node loop   (2 to 6), 3 times
+for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
+    for j in range(2, MAX_NUM_NODES[hL]+1):   #Node loop   (2 to 6), 3 times
         numNodeLastHidden[hL] += 1  #A new node added to the current layer [0 0 0]
         #Re-create the temp model with a new node at the layer
         modelTmp = keras.Sequential()   #initialize temporary model
@@ -174,23 +185,27 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
 
         for iL in range(1, hL+1):             #Adds number of hidden layers
             modelTmp.add(Dense(int(numNodeLastHidden[iL]), activation=ACT_FUN[hL], \
-                           kernel_initializer='random_normal'))#, kernel_regularizer = regFn))
+                           kernel_initializer=INITZR, kernel_regularizer=regFn))
 
         #output layer
-        modelTmp.add(Dense(1, activation=ACT_FUN[-1], kernel_initializer='random_normal'))#, kernel_regularizer = regFn))
+        modelTmp.add(Dense(1, activation=ACT_FUN[-1], kernel_initializer=INITZR, kernel_regularizer=regFn))
 
 
-        modelTmp.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy']) #, metrics=METRICS)
+        modelTmp.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy', AUC()]) #, metrics=METRICS)
         modelFitTmp = modelTmp.fit(train_set_all_xy, train_label_all_xy, batch_size=BATCH_SIZE,
                                    epochs=EPOCHS, verbose=0, callbacks=clBacks,
                                    validation_split=VAL_SPLIT)
 
         #After pulling out the best weights and the corresponding model "modelFitTmp",
+        modelTmp.load_weights(checkpoint_filepath, by_name=True, skip_mismatch=True)    #loading test weights
+        #modelTmp test evaluation
+        tmpLoss, tmpAcc, tmpAUC = modelTmp.evaluate(test_set_all_xy, test_label_all_xy, verbose=0)
+
         #compare against the last "bestAcc"
-        if max(modelFitTmp.history['val_accuracy']) > bestAcc:
-            print(max(modelFitTmp.history['val_accuracy']))
+        if tmpAcc > bestAcc:
+            print(tmpAcc)
             #update the best model and continue adding a node to this layer
-            bestAcc = max(modelFitTmp.history['val_accuracy'])
+            bestAcc = tmpAcc
             bestModel = modelTmp
             del modelTmp    #WHY ?
         else:   #adding a new node did not improve the performance.
@@ -201,18 +216,14 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop (1 to 4)
 #for hL
 
 '''#~~~~ TESTING ~~~~'''
-bestModel.load_weights(checkpoint_filepath)    #loading test weights
-
-#making test prediction
-test_pred = []
-#reshape from (1092, 1) to (1092)
-for i in bestModel.predict(test_set_all_xy).reshape(test_label_all_xy.shape[0]):
-    test_pred.append(round(i))
-testAcc = accuracy_score(test_label_all_xy, test_pred)  #test accuracy
+bestModel.load_weights(checkpoint_filepath, by_name=True, skip_mismatch=True)    #loading test weights
+#bestModel evaluation
+testLoss, testAcc, testAUC = bestModel.evaluate(test_set_all_xy, test_label_all_xy, verbose=0)
 
 print('\nTest Model Structure:')
 print(bestModel.summary())  #Printing new model structure
 print('Test Accuracy: {}'.format(testAcc))
+print('Test AUC: {}'.format(testAUC))
 
 #if model performed better than initial, save new one
 if testAcc > initAcc:
@@ -228,24 +239,15 @@ else:
 
 '''#~~~~ EVALUATION ~~~~'''
 #Evaluate performance of the model
-bestModel = keras.models.load_model(bestModel_filepath) #Loading best Model
+#compile=False to load AUC() properly
+bestModel = keras.models.load_model(bestModel_filepath, custom_objects={'AUC': AUC()}, compile=False) #Loading best Model
+bestModel.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy', AUC()])#METRICS)
 
-#finding best predictions
-best_pred = []
-#reshape from (1092, 1) to (1092)
-for i in bestModel.predict(test_set_all_xy).reshape(test_label_all_xy.shape[0]):
-    best_pred.append(round(i))
+bestLoss, bestAcc, bestAUC = bestModel.evaluate(test_set_all_xy, test_label_all_xy, verbose=0)
 
 print('Best Model Evaluation:')
-#Calculate Confusion Matrix
-confMatrix = confusion_matrix(test_label_all_xy, best_pred)
-print('Confusion Matrix : \n', confMatrix)
-#Calculate Accuracy
-accuracy = accuracy_score(test_label_all_xy, best_pred)
-print('Accuracy: {}'.format(accuracy))
-#Calculate AUC of ROC
-aucRoc = roc_auc_score(test_label_all_xy, best_pred)
-print('AUC of ROC: {}'.format(aucRoc))
+print('Accuracy: {}'.format(bestAcc))
+print('AUC of ROC: {}'.format(bestAUC))
 
 
 #Export performance metrics into performance.tf
@@ -254,7 +256,7 @@ print('AUC of ROC: {}'.format(aucRoc))
 
 '''~~~~ VISUALIZE ~~~~'''
 #Visualize performance metrics
-performance = [accuracy, aucRoc]
+performance = [bestAcc, bestAUC]
 plot_performance_metrics(performance)
 
 
