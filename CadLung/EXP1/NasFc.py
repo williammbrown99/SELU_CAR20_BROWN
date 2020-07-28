@@ -47,7 +47,7 @@ VAL_SPLIT = 0.15
 regRate = 0.001
 regFn = rg.l2(regRate)
 EPOCHS = 10
-BATCH_SIZE = 1
+BATCH_SIZE = 32
 METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
 LOSS_F = 'binary_crossentropy'
 INITZR = 'random_normal'
@@ -172,8 +172,8 @@ print('Initial Accuracy: {}'.format(initAcc))   #Printing initial accuracy
 print('Initial AUC: {}'.format(initAUC))   #Printing initial accuracy
 
 #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
-#numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1)
-numNodeLastHidden = [1, 1, 1, 1]    #hidden node > 1
+#numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1) #hidden node start at 1
+numNodeLastHidden = [None, 1, 1, 1]    #hidden node start at 2
 
 #Searching the best network architecture
 for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
@@ -195,7 +195,7 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
         modelFitTmp = modelTmp.fit(train_set_all_xy, train_label_all_xy, batch_size=BATCH_SIZE,
                                    epochs=EPOCHS, verbose=0, callbacks=clBacks,
                                    validation_split=VAL_SPLIT)
-
+        print(modelTmp.summary())
         #After pulling out the best weights and the corresponding model "modelFitTmp",
         modelTmp.load_weights(checkpoint_filepath, by_name=True, skip_mismatch=True)    #loading test weights
         #modelTmp test evaluation
@@ -209,6 +209,7 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
             bestModel = modelTmp
             del modelTmp    #WHY ?
         else:   #adding a new node did not improve the performance.
+            numNodeLastHidden[hL] -= 1 #going back to best number of hidden nodes
             #Stop adding a new node to this layer
             break
         #
