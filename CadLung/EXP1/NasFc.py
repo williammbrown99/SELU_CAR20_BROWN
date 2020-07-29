@@ -47,7 +47,7 @@ VAL_SPLIT = 0.15
 regRate = 0.001
 regFn = rg.l2(regRate)
 EPOCHS = 10
-BATCH_SIZE = 32
+BATCH_SIZE = 1
 METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
 LOSS_F = 'binary_crossentropy'
 INITZR = 'random_normal'
@@ -60,6 +60,7 @@ modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
 clBacks = [modelChkPnt_cBk]
 
 #Network Architecture
+numNodeLastHidden = [None, 1, 1, 1] #first is for input, hidden nodes start at 1
 MAX_NUM_NODES = (None, 6, 6, 6, 1) #first layer, hidden layers, and output layer. #hidden nodes > 1.
 lenMaxNumHidenLayer = len(MAX_NUM_NODES) - 2    #3
 ACT_FUN = (None, 'relu', 'relu', 'relu', 'sigmoid') #best activation functions for binary classification
@@ -171,14 +172,9 @@ print(bestModel.summary())  #Printing model structure
 print('Initial Accuracy: {}'.format(initAcc))   #Printing initial accuracy
 print('Initial AUC: {}'.format(initAUC))   #Printing initial accuracy
 
-#[0 0 0 0] 1st one is for input. number of nodes added to the current layer
-#numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1) #hidden node start at 1
-numNodeLastHidden = [None, 1, 1, 1]    #hidden node start at 2
-
 #Searching the best network architecture
 for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
     for j in range(2, MAX_NUM_NODES[hL]+1):   #Node loop   (2 to 6), 3 times
-        numNodeLastHidden[hL] += 1  #A new node added to the current layer [0 0 0]
         #Re-create the temp model with a new node at the layer
         modelTmp = keras.Sequential()   #initialize temporary model
         modelTmp.add(Flatten())         #Input layer
@@ -209,9 +205,12 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
             bestModel = modelTmp
             del modelTmp    #WHY ?
         else:   #adding a new node did not improve the performance.
-            numNodeLastHidden[hL] -= 1 #going back to best number of hidden nodes
+            if numNodeLastHidden[hL] != 1:
+                numNodeLastHidden[hL] -= 1  #going back to best number of nodes
             #Stop adding a new node to this layer
             break
+
+        numNodeLastHidden[hL] += 1  #A new node added to the current layer
         #
     #for j
 #for hL
