@@ -46,8 +46,8 @@ NORMALIZE = 'z-score' #Options: {Default: 'none', 'range', 'z-score'}
 VAL_SPLIT = 0.15
 regRate = 0.001
 regFn = rg.l2(regRate)
-EPOCHS = 10
-BATCH_SIZE = 1
+EPOCHS = 100
+BATCH_SIZE = 32
 METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
 LOSS_F = 'binary_crossentropy'
 INITZR = 'random_normal'
@@ -60,7 +60,6 @@ modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
 clBacks = [modelChkPnt_cBk]
 
 #Network Architecture
-numNodeLastHidden = [None, 1, 1, 1] #first is for input, hidden nodes start at 1
 MAX_NUM_NODES = (None, 6, 6, 6, 1) #first layer, hidden layers, and output layer. #hidden nodes > 1.
 lenMaxNumHidenLayer = len(MAX_NUM_NODES) - 2    #3
 ACT_FUN = (None, 'relu', 'relu', 'relu', 'sigmoid') #best activation functions for binary classification
@@ -165,6 +164,8 @@ else:
     modelFit = bestModel.fit(train_set_all_xy, train_label_all_xy,
                              epochs=EPOCHS, verbose=0, validation_split=VAL_SPLIT)
 
+    bestModel.save(bestModel_filepath)  #saving best model
+
 initLoss, initAcc, initAUC = bestModel.evaluate(test_set_all_xy, test_label_all_xy, verbose=0)
 
 print('Initial Model Structure:')
@@ -172,9 +173,12 @@ print(bestModel.summary())  #Printing model structure
 print('Initial Accuracy: {}'.format(initAcc))   #Printing initial accuracy
 print('Initial AUC: {}'.format(initAUC))   #Printing initial accuracy
 
+numNodeLastHidden = np.zeros(lenMaxNumHidenLayer + 1) #1st one is for input. number of nodes added to the current layer
+#[0, 0, 0, 0]
 #Searching the best network architecture
 for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
-    for j in range(2, MAX_NUM_NODES[hL]+1):   #Node loop   (2 to 6), 3 times
+    for j in range(1, MAX_NUM_NODES[hL]+1):   #Node loop   (2 to 6), 3 times
+        numNodeLastHidden[hL] += 1  #A new node added to the current layer
         #Re-create the temp model with a new node at the layer
         modelTmp = keras.Sequential()   #initialize temporary model
         modelTmp.add(Flatten())         #Input layer
@@ -199,7 +203,7 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
 
         #compare against the last "bestAcc"
         if tmpAcc > bestAcc:
-            print(tmpAcc)
+            print('Test Accuracy: {}'.format(tmpAcc))
             #update the best model and continue adding a node to this layer
             bestAcc = tmpAcc
             bestModel = modelTmp
@@ -209,8 +213,6 @@ for hL in range(1, lenMaxNumHidenLayer+1):  #Hidden Layer Loop 3 layers
                 numNodeLastHidden[hL] -= 1  #going back to best number of nodes
             #Stop adding a new node to this layer
             break
-
-        numNodeLastHidden[hL] += 1  #A new node added to the current layer
         #
     #for j
 #for hL
