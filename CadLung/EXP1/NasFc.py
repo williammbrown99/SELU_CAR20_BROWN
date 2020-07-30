@@ -126,6 +126,7 @@ with open(PATH_VOI + DataSet_xy + '.bin', 'rb') as f2:
 if POSTNORMALIZE == 'y':
     train_set_all_xy = positiveNormalize(train_set_all_xy)
     test_set_all_xy = positiveNormalize(test_set_all_xy)
+
 if NORMALIZE[0] == 'r':
     train_set_all_xy = rangeNormalize(train_set_all_xy, 0, 1)
     test_set_all_xy = rangeNormalize(test_set_all_xy, 0, 1)
