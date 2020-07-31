@@ -1,6 +1,8 @@
 import NasFcAnn
 
-testModel = NasFcAnn.NasFcAnn(name='Range', normalize='ra')   #Options: {Default: 'none', 'ra', 'zs'}
+testModel = NasFcAnn.NasFcAnn(name='zscore', normalize='zs', regRate=0.001)
+#normalize options: {Default: 'none', 'ra', 'zs'}
+#regRate options: {Default: 0.001}
 
 testModel.exportParam()
 testModel.loadData()

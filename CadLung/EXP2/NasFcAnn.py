@@ -32,13 +32,13 @@ class NasFcAnn(object):
     '''Attributes'''
     #Add class attributes simple to complex.
     #The following is just a partial list with default values. Add as needed.
-    name = 'default'
+    __name = 'default'
 
     #Path Parameters    #'INPUT/Voi_Data/', 'EXP1/','EXP1/CHKPNT/'
     paths = ('CadLung/INPUT/Voi_Data/', 'CadLung/EXP2/', 'CadLung/EXP2/CHKPNT/')
 
     #Data Parameters
-    normalize = 'none' #Options: {Default: 'none', 'ra', 'zs'}
+    __normalize = 'none' #Options: {Default: 'none', 'ra', 'zs'}
     positiveRegion = 'y' #Options: {Default: 'y', 'n'}
     positiveRegionMin = 0.0001 #{Default: 0.0001}
 
@@ -50,7 +50,7 @@ class NasFcAnn(object):
     lossFn = 'binary_crossentropy'
     initializer = 'random_normal'
     optMthd = 'adam'
-    regRate = 0.001
+    __regRate = 0.001
 
     #Network Architecture Parameters
     #first layer, hidden layers, and output layer. #hidden notes > 1.
@@ -58,7 +58,7 @@ class NasFcAnn(object):
     activationFn = (None, 'relu', 'relu', 'relu', 'sigmoid')
 
     #derived attributes
-    regFn = rg.l2(regRate)
+    regFn = rg.l2(__regRate)
     checkpoint_filepath = paths[2]+'checkpoint.hdf5'
     datasetxy_filepath = paths[0]+'data_balanced_6Slices_1orMore_xy.bin'
     lenMaxNumHidenLayer = len(maxNumNodes) - 2
@@ -72,14 +72,15 @@ class NasFcAnn(object):
 
     def __init__(self, **kwarg):
         '''Initialization'''
-        self.name = kwarg['name']
-        self.normalize = kwarg['normalize']
+        self.__name = kwarg['name']
+        self.__normalize = kwarg['normalize']
+        self.__regRate = kwarg['regRate']
     #
 
     def exportParam(self, **kwarg):
         '''function to export parameters to csv file'''
-        parameter_dict = {'Name': self.name, 'Normalization': self.normalize}
-        with open(self.paths[1]+'/MODEL/{}Parameters.tf'.format(self.name), 'w') as file:
+        parameter_dict = {'Name': self.__name, 'Normalization': self.__normalize}
+        with open(self.paths[1]+'/MODEL/{}Parameters.tf'.format(self.__name), 'w') as file:
             for key in parameter_dict.keys():
                 file.write("%s,%s\n"%(key, parameter_dict[key]))
     #
@@ -96,7 +97,7 @@ class NasFcAnn(object):
     def exportData(self, **kwarg):
         '''function to export data to bin file'''
         data_dict = {'Training Data': self.train_set_all_xy, 'Testing Data': self.test_set_all_xy}
-        with open(self.paths[1]+'/INPUT/{}Data.tf'.format(self.name), 'wb') as file:
+        with open(self.paths[1]+'/INPUT/{}Data.tf'.format(self.__name), 'wb') as file:
             for key in data_dict.keys():
                 file.write(key.encode('ascii'))
                 file.write(bytes(data_dict[key]))
@@ -126,10 +127,10 @@ class NasFcAnn(object):
             self.train_set_all_xy = positiveNormalize(self.train_set_all_xy)
             self.test_set_all_xy = positiveNormalize(self.test_set_all_xy)
 
-        if self.normalize == 'ra':
+        if self.__normalize == 'ra':
             self.train_set_all_xy = rangeNormalize(self.train_set_all_xy, 0, 1)
             self.test_set_all_xy = rangeNormalize(self.test_set_all_xy, 0, 1)
-        elif self.normalize == 'zs':
+        elif self.__normalize == 'zs':
             self.train_set_all_xy = stats.zscore(self.train_set_all_xy)
             self.test_set_all_xy = stats.zscore(self.test_set_all_xy)
         #
@@ -150,7 +151,7 @@ class NasFcAnn(object):
         preProcessedData_dict = {'Processed Training Data': self.train_set_all_xy,
                                  'Processed Testing Data': self.test_set_all_xy}
 
-        with open(self.paths[1]+'/INPUT/PROCESSED/{}PreProcessedData.tf'.format(self.name), 'wb') as file:
+        with open(self.paths[1]+'/INPUT/PROCESSED/{}PreProcessedData.tf'.format(self.__name), 'wb') as file:
             for key in preProcessedData_dict.keys():
                 file.write(key.encode('ascii'))
                 file.write(bytes(preProcessedData_dict[key]))
@@ -159,6 +160,23 @@ class NasFcAnn(object):
     def setUpModelTrain(self, **kwarg):
         '''function to find the best model structure'''
         bestAcc = 0 #best accuracy score
+        self.bestModel = keras.Sequential([
+        Flatten(),
+        Dense(6, activation=self.activationFn[1], kernel_initializer=self.initializer,
+              kernel_regularizer=self.regFn), #1st hidden layer
+        Dense(1, activation=self.activationFn[-1], kernel_initializer=self.initializer,
+              kernel_regularizer=self.regFn) #output layer
+        ])
+
+        self.bestModel.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC()])
+        modelFit = self.bestModel.fit(self.train_set_all_xy, self.train_label_all_xy,
+                                 batch_size=self.batchSize, epochs=self.epochs,
+                                 verbose=0, callbacks=self.clBacks,
+                                 validation_split=self.valSplit)
+
+        self.bestModel.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)
+        bestLoss, bestAcc, bestAUC = self.bestModel.evaluate(self.test_set_all_xy, self.test_label_all_xy, verbose=0)
+
         #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
         numNodeLastHidden = np.zeros(self.lenMaxNumHidenLayer + 1)
 
@@ -186,7 +204,6 @@ class NasFcAnn(object):
                                            validation_split=self.valSplit)
 
                 #After pulling out the best weights and the corresponding model "modelFitTmp",
-                print(modelTmp.summary())
                 #After pulling out the best weights and the corresponding model "modelFitTmp",
                 modelTmp.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)    #loading test weights
                 #modelTmp test evaluation
@@ -194,8 +211,8 @@ class NasFcAnn(object):
                 #compare against the last "bestAcc"
 
                 if tmpAcc > bestAcc:
-                    print('Test Accuracy: {}'.format(tmpAcc))
                     #update the best model and continue adding a node to this layer
+                    print(tmpAcc)
                     bestAcc = tmpAcc
                     self.bestModel = modelTmp
                     del modelTmp    #WHY ?
@@ -207,12 +224,13 @@ class NasFcAnn(object):
                 #
             #for j
         #for hL
+        print(self.bestModel.summary())
     #
 
     def exportModel(self, **kwarg):
         '''function to save model to hdf5 file'''
         self.bestModel.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)   #loading best weights
-        self.bestModel.save(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.name))  #saving best model
+        self.bestModel.save(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name))  #saving best model
     #
 
     def testModel(self, **kwarg):
@@ -228,7 +246,7 @@ class NasFcAnn(object):
 
     def exportPredict(self, **kwarg):
         '''function to export model predictions to bin file'''
-        with open(self.paths[1]+'/OUTPUT/{}TestPredictions.tf'.format(self.name), 'wb') as file:
+        with open(self.paths[1]+'/OUTPUT/{}TestPredictions.tf'.format(self.__name), 'wb') as file:
             for i in self.test_pred:
                 file.write(bytes(i))
     #
@@ -245,7 +263,7 @@ class NasFcAnn(object):
         '''function to export test performance to csv file'''
         testPerformance_dict = {'Accuracy': self.testAcc, 'AUC': self.testAUC}
 
-        with open(self.paths[1]+'/OUTPUT/{}TestPerformance.csv'.format(self.name), 'w') as file:
+        with open(self.paths[1]+'/OUTPUT/{}TestPerformance.csv'.format(self.__name), 'w') as file:
             for key in testPerformance_dict.keys():
                 file.write("%s,%s\n"%(key, testPerformance_dict[key]))
     #
@@ -275,5 +293,5 @@ class NasFcAnn(object):
         plt.xticks(x_pos, x)
         plt.title('Model Performance Metrics')
 
-        plt.savefig(self.paths[1]+'/OUTPUT/{}ModelPerformance.png'.format(self.name))
+        plt.savefig(self.paths[1]+'/OUTPUT/{}ModelPerformance.png'.format(self.__name))
     #
