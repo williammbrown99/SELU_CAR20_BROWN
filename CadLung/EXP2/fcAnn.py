@@ -1,6 +1,7 @@
 import NasFcAnn
 
-testModel = NasFcAnn.NasFcAnn(name='zscore', normalize='zs', regRate=0.001)
+testModel = NasFcAnn.NasFcAnn(dataPath='data_balanced_6Slices_1orMore_xy.bin', name='zs', normalize='zs', regRate=0.001)
+#!!!must include data path!!!
 #normalize options: {Default: 'none', 'ra', 'zs'}
 #regRate options: {Default: 0.001}
 

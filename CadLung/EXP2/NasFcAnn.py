@@ -36,6 +36,7 @@ class NasFcAnn(object):
 
     #Path Parameters    #'INPUT/Voi_Data/', 'EXP1/','EXP1/CHKPNT/'
     paths = ('CadLung/INPUT/Voi_Data/', 'CadLung/EXP2/', 'CadLung/EXP2/CHKPNT/')
+    __dataPath = 'none'
 
     #Data Parameters
     __normalize = 'none' #Options: {Default: 'none', 'ra', 'zs'}
@@ -44,7 +45,7 @@ class NasFcAnn(object):
 
     #Model Parameters
     valSplit = 0.15
-    epochs = 100
+    epochs = 10
     batchSize = 32
     METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
     lossFn = 'binary_crossentropy'
@@ -60,7 +61,6 @@ class NasFcAnn(object):
     #derived attributes
     regFn = rg.l2(__regRate)
     checkpoint_filepath = paths[2]+'checkpoint.hdf5'
-    datasetxy_filepath = paths[0]+'data_balanced_6Slices_1orMore_xy.bin'
     lenMaxNumHidenLayer = len(maxNumNodes) - 2
     modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
                                          save_weights_only=True,
@@ -72,6 +72,7 @@ class NasFcAnn(object):
 
     def __init__(self, **kwarg):
         '''Initialization'''
+        self.__dataPath = kwarg['dataPath']
         self.__name = kwarg['name']
         self.__normalize = kwarg['normalize']
         self.__regRate = kwarg['regRate']
@@ -87,16 +88,17 @@ class NasFcAnn(object):
 
     def loadData(self, **kwarg):
         '''function to load data'''
-        with open(self.datasetxy_filepath, 'rb') as f2:
-            self.train_set_all_xy = np.load(f2)
-            self.train_label_all_xy = np.load(f2)
-            self.test_set_all_xy = np.load(f2)
-            self.test_label_all_xy = np.load(f2)
+        datasetxy_filepath = self.paths[0]+self.__dataPath
+        with open(datasetxy_filepath, 'rb') as f2:
+            self.train_set_all = np.load(f2)
+            self.train_label_all = np.load(f2)
+            self.test_set_all = np.load(f2)
+            self.test_label_all = np.load(f2)
     #
 
     def exportData(self, **kwarg):
         '''function to export data to bin file'''
-        data_dict = {'Training Data': self.train_set_all_xy, 'Testing Data': self.test_set_all_xy}
+        data_dict = {'Training Data': self.train_set_all, 'Testing Data': self.test_set_all}
         with open(self.paths[1]+'/INPUT/{}Data.tf'.format(self.__name), 'wb') as file:
             for key in data_dict.keys():
                 file.write(key.encode('ascii'))
@@ -124,34 +126,34 @@ class NasFcAnn(object):
         #
 
         if self.positiveRegion == 'y':
-            self.train_set_all_xy = positiveNormalize(self.train_set_all_xy)
-            self.test_set_all_xy = positiveNormalize(self.test_set_all_xy)
+            self.train_set_all = positiveNormalize(self.train_set_all)
+            self.test_set_all = positiveNormalize(self.test_set_all)
 
         if self.__normalize == 'ra':
-            self.train_set_all_xy = rangeNormalize(self.train_set_all_xy, 0, 1)
-            self.test_set_all_xy = rangeNormalize(self.test_set_all_xy, 0, 1)
+            self.train_set_all = rangeNormalize(self.train_set_all, 0, 1)
+            self.test_set_all = rangeNormalize(self.test_set_all, 0, 1)
         elif self.__normalize == 'zs':
-            self.train_set_all_xy = stats.zscore(self.train_set_all_xy)
-            self.test_set_all_xy = stats.zscore(self.test_set_all_xy)
+            self.train_set_all = stats.zscore(self.train_set_all)
+            self.test_set_all = stats.zscore(self.test_set_all)
         #
 
         #Dim1: Batch, (Dim2,Dim3): Flattened images
-        self.train_set_all_xy = np.reshape(self.train_set_all_xy,
-                                           (self.train_set_all_xy.shape[0],
-                                            1, self.train_set_all_xy.shape[1]))
+        self.train_set_all = np.reshape(self.train_set_all,
+                                           (self.train_set_all.shape[0],
+                                            1, self.train_set_all.shape[1]))
 
         #Dim1: Batch, (Dim2,Dim3): Flattened images
-        self.test_set_all_xy = np.reshape(self.test_set_all_xy,
-                                          (self.test_set_all_xy.shape[0],
-                                           1, self.test_set_all_xy.shape[1]))
+        self.test_set_all = np.reshape(self.test_set_all,
+                                          (self.test_set_all.shape[0],
+                                           1, self.test_set_all.shape[1]))
     #
 
     def exportPreProcData(self, **kwarg):
         '''function to export pre processed data to bin file'''
-        preProcessedData_dict = {'Processed Training Data': self.train_set_all_xy,
-                                 'Processed Testing Data': self.test_set_all_xy}
+        preProcessedData_dict = {'Processed Training Data': self.train_set_all,
+                                 'Processed Testing Data': self.test_set_all}
 
-        with open(self.paths[1]+'/INPUT/PROCESSED/{}PreProcessedData.tf'.format(self.__name), 'wb') as file:
+        with open(self.paths[1]+'INPUT/PROCESSED/{}PreProcessedData.tf'.format(self.__name), 'wb') as file:
             for key in preProcessedData_dict.keys():
                 file.write(key.encode('ascii'))
                 file.write(bytes(preProcessedData_dict[key]))
@@ -169,13 +171,13 @@ class NasFcAnn(object):
         ])
 
         self.bestModel.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC()])
-        modelFit = self.bestModel.fit(self.train_set_all_xy, self.train_label_all_xy,
+        modelFit = self.bestModel.fit(self.train_set_all, self.train_label_all,
                                  batch_size=self.batchSize, epochs=self.epochs,
                                  verbose=0, callbacks=self.clBacks,
                                  validation_split=self.valSplit)
 
         self.bestModel.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)
-        bestLoss, bestAcc, bestAUC = self.bestModel.evaluate(self.test_set_all_xy, self.test_label_all_xy, verbose=0)
+        bestLoss, bestAcc, bestAUC = self.bestModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
 
         #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
         numNodeLastHidden = np.zeros(self.lenMaxNumHidenLayer + 1)
@@ -198,7 +200,7 @@ class NasFcAnn(object):
 
 
                 modelTmp.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC()])
-                modelFitTmp = modelTmp.fit(self.train_set_all_xy, self.train_label_all_xy,
+                modelFitTmp = modelTmp.fit(self.train_set_all, self.train_label_all,
                                            batch_size=self.batchSize,
                                            epochs=self.epochs, verbose=0, callbacks=self.clBacks,
                                            validation_split=self.valSplit)
@@ -207,7 +209,7 @@ class NasFcAnn(object):
                 #After pulling out the best weights and the corresponding model "modelFitTmp",
                 modelTmp.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)    #loading test weights
                 #modelTmp test evaluation
-                tmpLoss, tmpAcc, tmpAUC = modelTmp.evaluate(self.test_set_all_xy, self.test_label_all_xy, verbose=0)
+                tmpLoss, tmpAcc, tmpAUC = modelTmp.evaluate(self.test_set_all, self.test_label_all, verbose=0)
                 #compare against the last "bestAcc"
 
                 if tmpAcc > bestAcc:
@@ -237,8 +239,8 @@ class NasFcAnn(object):
         #making test prediction
         self.test_pred = []
         #reshape from (1092, 1) to (1092)
-        for i in self.bestModel.predict(self.test_set_all_xy).reshape(self.test_label_all_xy.shape[0]):
-            self.test_pred.append(round(i))
+        for i in self.bestModel.predict(self.test_set_all).reshape(self.test_label_all.shape[0]):
+            self.test_pred.append(i)
        
         print('First 10 predictions:')
         print(self.test_pred[:10])
@@ -254,7 +256,7 @@ class NasFcAnn(object):
     def evaluate(self, **kwarg):
         '''function to evaluate performance of model'''
         #Evaluate performance of the model
-        self.testLoss, self.testAcc, self.testAUC = self.bestModel.evaluate(self.test_set_all_xy, self.test_label_all_xy, verbose=0)
+        self.testLoss, self.testAcc, self.testAUC = self.bestModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
         print('Accuracy: {}'.format(self.testAcc))
         print('AUC of ROC: {}'.format(self.testAUC))
     #
