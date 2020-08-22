@@ -1,2 +1,0 @@
-Name,zs
-Normalization,zs

@@ -45,7 +45,7 @@ class NasFcAnn(object):
 
     #Model Parameters
     valSplit = 0.15
-    epochs = 10
+    epochs = 1
     batchSize = 32
     METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
     lossFn = 'binary_crossentropy'
@@ -68,7 +68,6 @@ class NasFcAnn(object):
                                          mode='max',
                                          save_best_only=True)
     clBacks = [modelChkPnt_cBk]
-    #
 
     def __init__(self, **kwarg):
         '''Initialization'''
@@ -88,8 +87,8 @@ class NasFcAnn(object):
 
     def loadData(self, **kwarg):
         '''function to load data'''
-        datasetxy_filepath = self.paths[0]+self.__dataPath
-        with open(datasetxy_filepath, 'rb') as f2:
+        dataset_filepath = self.paths[0]+self.__dataPath
+        with open(dataset_filepath, 'rb') as f2:
             self.train_set_all = np.load(f2)
             self.train_label_all = np.load(f2)
             self.test_set_all = np.load(f2)
@@ -241,16 +240,13 @@ class NasFcAnn(object):
         #reshape from (1092, 1) to (1092)
         for i in self.bestModel.predict(self.test_set_all).reshape(self.test_label_all.shape[0]):
             self.test_pred.append(i)
-       
-        print('First 10 predictions:')
-        print(self.test_pred[:10])
     #
 
     def exportPredict(self, **kwarg):
         '''function to export model predictions to bin file'''
-        with open(self.paths[1]+'/OUTPUT/{}TestPredictions.tf'.format(self.__name), 'wb') as file:
+        with open(self.paths[1]+'OUTPUT/{}TestPredictions.tf'.format(self.__name), 'w') as file:
             for i in self.test_pred:
-                file.write(bytes(i))
+                file.write(str(i)+'\n')
     #
 
     def evaluate(self, **kwarg):
