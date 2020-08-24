@@ -1,7 +1,15 @@
 import NasFcAnn
 
-testModel = NasFcAnn.NasFcAnn(dataPath='data_balanced_6Slices_1orMore_xy.bin', name='xySlice', normalize='zs', regRate=0.001)
+xySliceInputPath = 'data_balanced_6Slices_1orMore_xy.bin'
+xyPlaneInputPath = 'CadLung/INPUT/PLANE/xyPlaneInput.npz'
+
+testModel = NasFcAnn.NasFcAnn(dataPath=xyPlaneInputPath, type='plane',
+                              name='xyPlane', regRate=0.001, positiveRegion='n',
+                              normalize='none')
 #!!!must include data path!!!
+#type Options: {Default: 'slice', 'plane'}
+#positiveRegion options: {Default: 'n', 'y'}
+#name options: {Default: 'none'}
 #normalize options: {Default: 'none', 'ra', 'zs'}
 #regRate options: {Default: 0.001}
 
@@ -18,5 +26,8 @@ testModel.evaluate()
 testModel.exportTestPerf()
 testModel.visualPerf()
 testModel.exportChart()
+
+#function to export training predictions to next model
+testModel.exportTrainPred()
 
 print('done!')

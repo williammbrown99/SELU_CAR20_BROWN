@@ -33,6 +33,7 @@ class NasFcAnn(object):
     #Add class attributes simple to complex.
     #The following is just a partial list with default values. Add as needed.
     __name = 'default'
+    __type = 'slice'
 
     #Path Parameters    #'INPUT/Voi_Data/', 'EXP1/','EXP1/CHKPNT/'
     paths = ('CadLung/INPUT/Voi_Data/', 'CadLung/EXP2/', 'CadLung/EXP2/CHKPNT/')
@@ -40,12 +41,12 @@ class NasFcAnn(object):
 
     #Data Parameters
     __normalize = 'none' #Options: {Default: 'none', 'ra', 'zs'}
-    positiveRegion = 'y' #Options: {Default: 'y', 'n'}
+    __positiveRegion = 'y' #Options: {Default: 'n', 'y'}
     positiveRegionMin = 0.0001 #{Default: 0.0001}
 
     #Model Parameters
     valSplit = 0.15
-    epochs = 1
+    epochs = 100
     batchSize = 32
     METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
     lossFn = 'binary_crossentropy'
@@ -73,8 +74,10 @@ class NasFcAnn(object):
         '''Initialization'''
         self.__dataPath = kwarg['dataPath']
         self.__name = kwarg['name']
+        self.__type = kwarg['type']
         self.__normalize = kwarg['normalize']
         self.__regRate = kwarg['regRate']
+        self.__positiveRegion= kwarg['positiveRegion']
     #
 
     def exportParam(self, **kwarg):
@@ -87,21 +90,33 @@ class NasFcAnn(object):
 
     def loadData(self, **kwarg):
         '''function to load data'''
-        dataset_filepath = self.paths[0]+self.__dataPath
-        with open(dataset_filepath, 'rb') as f2:
-            self.train_set_all = np.load(f2)
-            self.train_label_all = np.load(f2)
-            self.test_set_all = np.load(f2)
-            self.test_label_all = np.load(f2)
+        if self.__type == 'plane':
+            file = np.load(self.__dataPath)
+            self.train_set_all = file['arr_0']
+            self.train_label_all = file['arr_1']
+            self.test_set_all = file['arr_2']
+            self.test_label_all = file['arr_3']
+        else:
+            dataset_filepath = self.paths[0]+self.__dataPath
+            with open(dataset_filepath, 'rb') as f2:
+                self.train_set_all = np.load(f2)
+                self.train_label_all = np.load(f2)
+                self.test_set_all = np.load(f2)
+                self.test_label_all = np.load(f2)
+                print(self.train_set_all.shape)
+                print(self.train_label_all.shape)
+                print(self.test_set_all.shape)
+                print(self.test_label_all.shape)
     #
 
     def exportData(self, **kwarg):
         '''function to export data to bin file'''
-        data_dict = {'Training Data': self.train_set_all, 'Testing Data': self.test_set_all}
-        with open(self.paths[1]+'/INPUT/{}Data.tf'.format(self.__name), 'wb') as file:
-            for key in data_dict.keys():
-                file.write(key.encode('ascii'))
-                file.write(bytes(data_dict[key]))
+        data_list = [self.train_set_all, self.test_set_all]
+        with open(self.paths[1]+'/INPUT/{}Data.tf'.format(self.__name), 'w') as file:
+            for i in data_list[0]:
+                file.write(str(i)+'\n')
+            for j in data_list[1]:
+                file.write(str(j)+'\n')
     #
 
     def doPreProcess(self, **kwarg):
@@ -124,7 +139,7 @@ class NasFcAnn(object):
             return data
         #
 
-        if self.positiveRegion == 'y':
+        if self.__positiveRegion == 'y':
             self.train_set_all = positiveNormalize(self.train_set_all)
             self.test_set_all = positiveNormalize(self.test_set_all)
 
@@ -149,13 +164,13 @@ class NasFcAnn(object):
 
     def exportPreProcData(self, **kwarg):
         '''function to export pre processed data to bin file'''
-        preProcessedData_dict = {'Processed Training Data': self.train_set_all,
-                                 'Processed Testing Data': self.test_set_all}
+        preProcessedData_list = [self.train_set_all, self.test_set_all]
 
-        with open(self.paths[1]+'INPUT/PROCESSED/{}PreProcessedData.tf'.format(self.__name), 'wb') as file:
-            for key in preProcessedData_dict.keys():
-                file.write(key.encode('ascii'))
-                file.write(bytes(preProcessedData_dict[key]))
+        with open(self.paths[1]+'INPUT/PROCESSED/{}PreProcessedData.tf'.format(self.__name), 'w') as file:
+            for i in preProcessedData_list[0]:
+                file.write(str(i)+'\n')
+            for j in preProcessedData_list[1]:
+                file.write(str(i)+'\n')
     #
 
     def setUpModelTrain(self, **kwarg):
@@ -243,7 +258,7 @@ class NasFcAnn(object):
     #
 
     def exportPredict(self, **kwarg):
-        '''function to export model predictions to bin file'''
+        '''function to export model predictions to tf file'''
         with open(self.paths[1]+'OUTPUT/{}TestPredictions.tf'.format(self.__name), 'w') as file:
             for i in self.test_pred:
                 file.write(str(i)+'\n')
@@ -292,4 +307,15 @@ class NasFcAnn(object):
         plt.title('Model Performance Metrics')
 
         plt.savefig(self.paths[1]+'/OUTPUT/{}ModelPerformance.png'.format(self.__name))
+    #
+
+    def exportTrainPred(self, **kwarg):
+        '''function to export training predictions to the next Model'''
+        #making train predictions
+        train_pred = []
+        for i in self.bestModel.predict(self.train_set_all).reshape(self.train_label_all.shape[0]):
+            train_pred.append(i)
+        with open(self.paths[1]+'OUTPUT/{}TrainPredictions.tf'.format(self.__name), 'w') as file:
+            for i in train_pred:
+                file.write(str(i)+'\n')
     #
