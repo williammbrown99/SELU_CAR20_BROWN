@@ -1,2 +1,2 @@
 Name,xyPlane
-Normalization,none
+Normalization,zs

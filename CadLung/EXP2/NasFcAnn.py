@@ -1,7 +1,7 @@
 '''
 SELU - CAR System -- LBRN 2020 Virtual Summer Program
 Mentor: Dr. Omer Muhammet Soysal
-Last Modified on: July 19 2020
+Last Modified on: August 27 2020
 
 Authors: William Brown
 Date:
@@ -12,7 +12,7 @@ CODING NOTES
 - Be sure your code is optimized as much as possible.
 - Read the coding standarts and best practice notes.
 ~~~~ HELP  ~~~~
-- Enter your notes to help to understand your code here
+- Class to create models
 '''
 import os
 import keras

@@ -1,7 +1,7 @@
 '''
 SELU - CAR System -- LBRN 2020 Virtual Summer Program
 Mentor: Dr. Omer Muhammet Soysal
-Last Modified on: August 21 2020
+Last Modified on: August 27 2020
 
 Authors: William Brown
 Date:
@@ -12,7 +12,7 @@ CODING NOTES
 - Be sure your code is optimized as much as possible.
 - Read the coding standarts and best practice notes.
 ~~~~ HELP  ~~~~
-- Enter your notes to help to understand your code here
+- Class to preprocess data for plane models
 '''
 import numpy as np
 
@@ -21,8 +21,8 @@ class PlaneDataProcess(object):
     paths = ('CadLung/INPUT/Voi_Data/', 'CadLung/EXP2/', 'CadLung/EXP2/CHKPNT/')
     ###
 
-    def __init__(self, **kwarg):
-        pass
+    def __init__(self, name, **kwarg):
+        self.name = name
     #
 
     def readTrainData(self, path):

@@ -1,4 +1,19 @@
-'''William Brown'''
+'''
+SELU - CAR System -- LBRN 2020 Virtual Summer Program
+Mentor: Dr. Omer Muhammet Soysal
+Last Modified on: August 27 2020
+
+Authors: William Brown
+Date:
+Distribution: Participants of SELU - CAR System -- LBRN 2020 Virtual Summer Program
+
+CODING NOTES
+- Use relative path
+- Be sure your code is optimized as much as possible.
+- Read the coding standarts and best practice notes.
+~~~~ HELP  ~~~~
+- Main File
+'''
 import NasFcAnn
 import PlaneDataProcess
 import keras
@@ -33,7 +48,7 @@ xySliceModel.exportTrainPred()
 ###
 
 # XY Plane Pre Process
-xyPlanePreProcess = PlaneDataProcess.PlaneDataProcess()
+xyPlanePreProcess = PlaneDataProcess.PlaneDataProcess('xySlice')
 xyPlaneTrainSet = xyPlanePreProcess.readTrainData(xySliceTrainPredPath)      #Training Set
 xyPlaneTrainLabel = xyPlanePreProcess.convertTrainingLabels(DataSet_xy)[0]   #Training Labels
 xyPlaneTestSet = xyPlanePreProcess.readTrainData(xySliceTestPredPath)        #Test Set
@@ -45,7 +60,7 @@ xyPlanePreProcess.exportPlaneInputs(xyPlaneInputPath, xyPlaneTrainSet, xyPlaneTr
 # XY Plane Model
 xyPlaneModel = NasFcAnn.NasFcAnn(dataPath=xyPlaneInputPath, type='plane',
                               name='xyPlane', regRate=0.001, positiveRegion='n',
-                              normalize='none')
+                              normalize='zs')
 
 xyPlaneModel.loadData()
 xyPlaneModel.doPreProcess()
