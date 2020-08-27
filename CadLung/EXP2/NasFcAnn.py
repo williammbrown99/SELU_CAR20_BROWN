@@ -20,7 +20,7 @@ import keras
 from keras import callbacks as cB
 from keras import regularizers as rg
 from keras.layers import Dense, Flatten
-from keras.metrics import AUC, FalsePositives, TrueNegatives, Precision, Recall
+from keras.metrics import AUC
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
 
@@ -48,7 +48,7 @@ class NasFcAnn(object):
     valSplit = 0.15
     epochs = 100
     batchSize = 32
-    METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
+    METRICS = ['accuracy', AUC()]
     lossFn = 'binary_crossentropy'
     initializer = 'random_normal'
     optMthd = 'adam'
@@ -103,10 +103,6 @@ class NasFcAnn(object):
                 self.train_label_all = np.load(f2)
                 self.test_set_all = np.load(f2)
                 self.test_label_all = np.load(f2)
-                print(self.train_set_all.shape)
-                print(self.train_label_all.shape)
-                print(self.test_set_all.shape)
-                print(self.test_label_all.shape)
     #
 
     def exportData(self, **kwarg):
@@ -248,6 +244,12 @@ class NasFcAnn(object):
         self.bestModel.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)   #loading best weights
         self.bestModel.save(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name))  #saving best model
     #
+
+    def loadModel(self, **kwarg):
+        self.bestModel = keras.models.load_model(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name),
+                                                custom_objects={'AUC': AUC()}, compile=False)
+        self.bestModel.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC()])
+        #
 
     def testModel(self, **kwarg):
         #making test prediction
