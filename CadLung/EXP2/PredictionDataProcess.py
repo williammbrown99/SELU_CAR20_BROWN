@@ -16,28 +16,28 @@ CODING NOTES
 '''
 import numpy as np
 
-class PlaneDataProcess(object):
+class PredictionDataProcess(object):
     #Attributes
     paths = ('CadLung/INPUT/Voi_Data/', 'CadLung/EXP2/', 'CadLung/EXP2/CHKPNT/')
     ###
 
-    def __init__(self, name, **kwarg):
-        self.name = name
+    def __init__(self, **kwarg):
+        pass
     #
 
-    def readTrainData(self, path):
+    def sliceToPlane(self, path):
         '''Read XY Slice Model Predictions'''
         numSlices = 6
         with open(self.paths[1]+path, mode='r') as file:
-            xySlicePred = file.readlines()
+            slicePred = file.readlines()
 
-        for i in range(0, len(xySlicePred)):
-            xySlicePred[i] = float(xySlicePred[i])
+        for i in range(0, len(slicePred)):
+            slicePred[i] = float(slicePred[i])
 
         #Reshaping feature vector
-        pred = [xySlicePred[x:x+numSlices] for x in range(0, len(xySlicePred), numSlices)]
+        planeInputs = [slicePred[x:x+numSlices] for x in range(0, len(slicePred), numSlices)]
 
-        return pred
+        return planeInputs
     #
 
     def convertTrainingLabels(self, path):
@@ -57,7 +57,31 @@ class PlaneDataProcess(object):
         return [trainLabels, testLabels]
     #
 
-    def exportPlaneInputs(self, path, trainSet, trainLabel, testSet, testLabel):
+    def planeToVolume(self, path1, path2, path3):
+        '''Read XY Slice Model Predictions'''
+        # Reading Files
+        with open(self.paths[1]+path1, mode='r') as file:
+            xyPlanePred = file.readlines()
+        with open(self.paths[1]+path2, mode='r') as file:
+            xzPlanePred = file.readlines()
+        with open(self.paths[1]+path3, mode='r') as file:
+            yzPlanePred = file.readlines()
+        
+        # Converting to floats
+        for i in range(0, len(xyPlanePred)):
+            xyPlanePred[i] = float(xyPlanePred[i])
+        for j in range(0, len(xzPlanePred)):
+            xzPlanePred[j] = float(xzPlanePred[j])
+        for k in range(0, len(yzPlanePred)):
+            yzPlanePred[k] = float(yzPlanePred[k])
+
+        #Reshaping feature vector
+        volumeInputs = [[xyPlanePred[x], xzPlanePred[x], yzPlanePred[x]] for x in range(0, len(xyPlanePred))]
+
+        return volumeInputs
+    #
+
+    def exportInputs(self, path, trainSet, trainLabel, testSet, testLabel):
         '''Export Imports for Plane Model'''
         np.savez(path, trainSet, trainLabel, testSet, testLabel)
         file = np.load(path)

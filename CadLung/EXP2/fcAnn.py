@@ -21,12 +21,16 @@ DataSet_xz = 'data_balanced_6Slices_1orMore_xz.bin'
 DataSet_yz = 'data_balanced_6Slices_1orMore_yz.bin'
 
 xyPlaneInputPath = 'CadLung/INPUT/PLANE/xyPlaneInput.npz'
+xzPlaneInputPath = 'CadLung/INPUT/PLANE/xzPlaneInput.npz'
+yzPlaneInputPath = 'CadLung/INPUT/PLANE/yzPlaneInput.npz'
 
-testModel = NasFcAnn.NasFcAnn(dataPath=xyPlaneInputPath, type='plane',
-                              name='xyPlane', regRate=0.001, positiveRegion='n',
+volumeInputPath = 'CadLung/INPUT/VOLUME/volumeInput.npz'
+
+testModel = NasFcAnn.NasFcAnn(dataPath=volumeInputPath, type='volume',
+                              name='volume', regRate=0.001, positiveRegion='n',
                               normalize='zs')
 #!!!must include data path!!!
-#type Options: {Default: 'slice', 'plane'}
+#type Options: {Default: 'slice', 'plane', 'volume'}
 #positiveRegion options: {Default: 'n', 'y'}
 #name options: {Default: 'none'}
 #normalize options: {Default: 'none', 'ra', 'zs'}

@@ -1,0 +1,2 @@
+Name,yzPlane
+Normalization,zs

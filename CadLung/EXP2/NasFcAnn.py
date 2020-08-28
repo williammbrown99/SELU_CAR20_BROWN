@@ -90,19 +90,19 @@ class NasFcAnn(object):
 
     def loadData(self, **kwarg):
         '''function to load data'''
-        if self.__type == 'plane':
-            file = np.load(self.__dataPath)
-            self.train_set_all = file['arr_0']
-            self.train_label_all = file['arr_1']
-            self.test_set_all = file['arr_2']
-            self.test_label_all = file['arr_3']
-        else:
+        if self.__type == 'slice':
             dataset_filepath = self.paths[0]+self.__dataPath
             with open(dataset_filepath, 'rb') as f2:
                 self.train_set_all = np.load(f2)
                 self.train_label_all = np.load(f2)
                 self.test_set_all = np.load(f2)
                 self.test_label_all = np.load(f2)
+        else:
+            file = np.load(self.__dataPath)
+            self.train_set_all = file['arr_0']
+            self.train_label_all = file['arr_1']
+            self.test_set_all = file['arr_2']
+            self.test_label_all = file['arr_3']
     #
 
     def exportData(self, **kwarg):
