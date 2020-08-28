@@ -173,6 +173,7 @@ volumeModel.loadData()
 volumeModel.doPreProcess()
 
 volumeModel.loadModel()
+volumeModel.testModel()
 print('\nVolume Model Evaluation:')
 volumeModel.evaluate()
 ###

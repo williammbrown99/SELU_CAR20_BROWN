@@ -256,7 +256,10 @@ class NasFcAnn(object):
         self.test_pred = []
         #reshape from (1092, 1) to (1092)
         for i in self.bestModel.predict(self.test_set_all).reshape(self.test_label_all.shape[0]):
-            self.test_pred.append(i)
+            if self.__type == 'volume':
+                self.test_pred.append(i.round())
+            else:
+                self.test_pred.append(i)
     #
 
     def exportPredict(self, **kwarg):
