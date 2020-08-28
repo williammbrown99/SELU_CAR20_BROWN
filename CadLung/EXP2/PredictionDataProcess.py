@@ -86,4 +86,70 @@ class PredictionDataProcess(object):
         np.savez(path, trainSet, trainLabel, testSet, testLabel)
         file = np.load(path)
     ###
+
+#Paths
+DataSet_xy = 'data_balanced_6Slices_1orMore_xy.bin'
+DataSet_xz = 'data_balanced_6Slices_1orMore_xz.bin'
+DataSet_yz = 'data_balanced_6Slices_1orMore_yz.bin'
+
+xySliceTrainPredPath = 'OUTPUT/xySliceTrainPredictions.tf'
+xySliceTestPredPath = 'OUTPUT/xySliceTestPredictions.tf'
+xzSliceTrainPredPath = 'OUTPUT/xzSliceTrainPredictions.tf'
+xzSliceTestPredPath = 'OUTPUT/xzSliceTestPredictions.tf'
+yzSliceTrainPredPath = 'OUTPUT/yzSliceTrainPredictions.tf'
+yzSliceTestPredPath = 'OUTPUT/yzSliceTestPredictions.tf'
+
+xyPlaneInputPath = 'CadLung/INPUT/PLANE/xyPlaneInput.npz'
+xzPlaneInputPath = 'CadLung/INPUT/PLANE/xzPlaneInput.npz'
+yzPlaneInputPath = 'CadLung/INPUT/PLANE/yzPlaneInput.npz'
+
+xyPlaneTrainPredPath = 'OUTPUT/xyPlaneTrainPredictions.tf'
+xyPlaneTestPredPath = 'OUTPUT/xyPlaneTestPredictions.tf'
+xzPlaneTrainPredPath = 'OUTPUT/xzPlaneTrainPredictions.tf'
+xzPlaneTestPredPath = 'OUTPUT/xzPlaneTestPredictions.tf'
+yzPlaneTrainPredPath = 'OUTPUT/yzPlaneTrainPredictions.tf'
+yzPlaneTestPredPath = 'OUTPUT/yzPlaneTestPredictions.tf'
+
+volumeInputPath = 'CadLung/INPUT/VOLUME/volumeInput.npz'
 ###
+
+# Convert labels to 3d
+PredictionDataProcess = PredictionDataProcess()
+trainLabel = PredictionDataProcess.convertTrainingLabels(DataSet_xy)[0]   #Training Labels (420)
+testLabel = PredictionDataProcess.convertTrainingLabels(DataSet_xy)[1]    #Test Labels    (182)
+###
+
+# XY Plane Pre Process
+xyPlaneTrainSet = PredictionDataProcess.sliceToPlane(xySliceTrainPredPath)      #Training Set
+xyPlaneTestSet = PredictionDataProcess.sliceToPlane(xySliceTestPredPath)        #Test Set
+
+PredictionDataProcess.exportInputs(xyPlaneInputPath, xyPlaneTrainSet, trainLabel, xyPlaneTestSet, testLabel)
+###
+
+# XZ Plane Pre Process
+xzPlaneTrainSet = PredictionDataProcess.sliceToPlane(xzSliceTrainPredPath)      #Training Set
+xzPlaneTestSet = PredictionDataProcess.sliceToPlane(xzSliceTestPredPath)        #Test Set
+
+PredictionDataProcess.exportInputs(xzPlaneInputPath, xzPlaneTrainSet, trainLabel, xzPlaneTestSet, testLabel)
+###
+
+# YZ Plane Pre Process
+yzPlaneTrainSet = PredictionDataProcess.sliceToPlane(yzSliceTrainPredPath)      #Training Set
+yzPlaneTestSet = PredictionDataProcess.sliceToPlane(yzSliceTestPredPath)        #Test Set
+
+PredictionDataProcess.exportInputs(yzPlaneInputPath, yzPlaneTrainSet, trainLabel, yzPlaneTestSet, testLabel)
+###
+
+# Volume Pre Process
+volumeTrainSet = PredictionDataProcess.planeToVolume(xyPlaneTrainPredPath,
+                                                     xzPlaneTrainPredPath,
+                                                     yzPlaneTrainPredPath)     #Training Set
+
+volumeTestSet = PredictionDataProcess.planeToVolume(xyPlaneTestPredPath,
+                                                    xzPlaneTestPredPath,
+                                                    yzPlaneTestPredPath)       #Test Set
+
+PredictionDataProcess.exportInputs(volumeInputPath, volumeTrainSet, trainLabel, volumeTestSet, testLabel)
+###
+
+print('done!')

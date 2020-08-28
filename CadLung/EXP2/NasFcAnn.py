@@ -21,6 +21,10 @@ from keras import callbacks as cB
 from keras import regularizers as rg
 from keras.layers import Dense, Flatten
 from keras.metrics import AUC
+from keras.optimizers import Adam
+from keras.backend import sigmoid
+from keras.utils.generic_utils import get_custom_objects 
+from keras.layers import Activation
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
 
@@ -45,19 +49,25 @@ class NasFcAnn(object):
     positiveRegionMin = 0.0001 #{Default: 0.0001}
 
     #Model Parameters
+    learningRate = 0.001
     valSplit = 0.15
     epochs = 100
     batchSize = 32
     METRICS = ['accuracy', AUC()]
     lossFn = 'binary_crossentropy'
     initializer = 'random_normal'
-    optMthd = 'adam'
+    optMthd = Adam(learning_rate=learningRate)
     __regRate = 0.001
 
     #Network Architecture Parameters
     #first layer, hidden layers, and output layer. #hidden notes > 1.
     maxNumNodes = (None, 6, 6, 6, 1)
-    activationFn = (None, 'relu', 'relu', 'relu', 'sigmoid')
+    #Loading custom swish activation function
+    def swish(x, beta = 1): 
+        return (x * sigmoid(beta * x))
+    get_custom_objects().update({'swish': swish})
+    #setting activation functions
+    activationFn = (None, 'swish', 'swish', 'swish', 'sigmoid')
 
     #derived attributes
     regFn = rg.l2(__regRate)
@@ -188,6 +198,7 @@ class NasFcAnn(object):
 
         self.bestModel.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)
         bestLoss, bestAcc, bestAUC = self.bestModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
+        print(bestAcc)
 
         #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
         numNodeLastHidden = np.zeros(self.lenMaxNumHidenLayer + 1)
@@ -215,7 +226,6 @@ class NasFcAnn(object):
                                            epochs=self.epochs, verbose=0, callbacks=self.clBacks,
                                            validation_split=self.valSplit)
 
-                #After pulling out the best weights and the corresponding model "modelFitTmp",
                 #After pulling out the best weights and the corresponding model "modelFitTmp",
                 modelTmp.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)    #loading test weights
                 #modelTmp test evaluation
