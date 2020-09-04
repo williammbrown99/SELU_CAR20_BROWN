@@ -26,8 +26,8 @@ yzPlaneInputPath = 'CadLung/INPUT/PLANE/yzPlaneInput.npz'
 
 volumeInputPath = 'CadLung/INPUT/VOLUME/volumeInput.npz'
 
-testModel = NasFcAnn.NasFcAnn(dataPath=volumeInputPath, type='volume',
-                              name='volume', regRate=0.001, positiveRegion='n',
+testModel = NasFcAnn.NasFcAnn(dataPath=DataSet_xy, type='slice',
+                              name='xySlice', regRate=0.001, positiveRegion='y',
                               normalize='zs')
 #!!!must include data path!!!
 #type Options: {Default: 'slice', 'plane', 'volume'}

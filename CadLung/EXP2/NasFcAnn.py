@@ -20,7 +20,7 @@ import keras
 from keras import callbacks as cB
 from keras import regularizers as rg
 from keras.layers import Dense, Flatten
-from keras.metrics import AUC
+from keras.metrics import AUC, TruePositives, FalsePositives, TrueNegatives, FalseNegatives
 from keras.optimizers import Adam
 from keras.backend import sigmoid
 from keras.utils.generic_utils import get_custom_objects 
@@ -30,7 +30,6 @@ from sklearn.preprocessing import MinMaxScaler
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 
 class NasFcAnn(object):
     '''Attributes'''
@@ -53,7 +52,7 @@ class NasFcAnn(object):
     valSplit = 0.15
     epochs = 100
     batchSize = 32
-    METRICS = ['accuracy', AUC()]
+    METRICS = ['accuracy', AUC(name='AUC'), TruePositives(), FalsePositives(), TrueNegatives(), FalseNegatives()]
     lossFn = 'binary_crossentropy'
     initializer = 'random_normal'
     optMthd = Adam(learning_rate=learningRate)
@@ -75,7 +74,7 @@ class NasFcAnn(object):
     lenMaxNumHidenLayer = len(maxNumNodes) - 2
     modelChkPnt_cBk = cB.ModelCheckpoint(filepath=checkpoint_filepath,
                                          save_weights_only=True,
-                                         monitor='val_accuracy',
+                                         monitor='val_AUC',
                                          mode='max',
                                          save_best_only=True)
     clBacks = [modelChkPnt_cBk]
@@ -181,24 +180,18 @@ class NasFcAnn(object):
 
     def setUpModelTrain(self, **kwarg):
         '''function to find the best model structure'''
-        bestAcc = 0 #best accuracy score
-        self.bestModel = keras.Sequential([
-        Flatten(),
-        Dense(6, activation=self.activationFn[1], kernel_initializer=self.initializer,
-              kernel_regularizer=self.regFn), #1st hidden layer
-        Dense(1, activation=self.activationFn[-1], kernel_initializer=self.initializer,
-              kernel_regularizer=self.regFn) #output layer
-        ])
+        bestAUC = 0 #best AUC score
+        if os.path.exists(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name)):
+            self.bestModel = keras.models.load_model(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name),
+                                                    custom_objects={'AUC': AUC(), 'TP': TruePositives(),
+                                                                    'FP': FalsePositives(), 'TN': TrueNegatives(), 
+                                                                    'FN': FalseNegatives()},
+                                                    compile=False)
+            self.bestModel.compile(loss=self.lossFn, optimizer=self.optMthd,
+                                   metrics=['accuracy', AUC(name='AUC'), TruePositives(), FalsePositives(),
+                                            TrueNegatives(), FalseNegatives()])
 
-        self.bestModel.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC()])
-        modelFit = self.bestModel.fit(self.train_set_all, self.train_label_all,
-                                 batch_size=self.batchSize, epochs=self.epochs,
-                                 verbose=0, callbacks=self.clBacks,
-                                 validation_split=self.valSplit)
-
-        self.bestModel.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)
-        bestLoss, bestAcc, bestAUC = self.bestModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
-        print(bestAcc)
+            bestLoss, bestAcc, bestAUC, bestTP, bestFP, bestTN, bestFN = self.bestModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
 
         #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
         numNodeLastHidden = np.zeros(self.lenMaxNumHidenLayer + 1)
@@ -220,7 +213,9 @@ class NasFcAnn(object):
                                    kernel_regularizer=self.regFn))
 
 
-                modelTmp.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC()])
+                modelTmp.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC(name='AUC'), TruePositives(),
+                                                                                    FalsePositives(), TrueNegatives(),
+                                                                                    FalseNegatives()])
                 modelFitTmp = modelTmp.fit(self.train_set_all, self.train_label_all,
                                            batch_size=self.batchSize,
                                            epochs=self.epochs, verbose=0, callbacks=self.clBacks,
@@ -229,13 +224,13 @@ class NasFcAnn(object):
                 #After pulling out the best weights and the corresponding model "modelFitTmp",
                 modelTmp.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)    #loading test weights
                 #modelTmp test evaluation
-                tmpLoss, tmpAcc, tmpAUC = modelTmp.evaluate(self.test_set_all, self.test_label_all, verbose=0)
-                #compare against the last "bestAcc"
+                tmpLoss, tmpAcc, tmpAUC, tmpTP, tmpFP, tmpTN, tmpFN = modelTmp.evaluate(self.test_set_all, self.test_label_all, verbose=0)
+                #compare against the last "bestAUC"
 
-                if tmpAcc > bestAcc:
+                if tmpAUC > bestAUC:
                     #update the best model and continue adding a node to this layer
-                    print(tmpAcc)
-                    bestAcc = tmpAcc
+                    print(tmpAUC)
+                    bestAUC = tmpAUC
                     self.bestModel = modelTmp
                     del modelTmp    #WHY ?
                 else:   #adding a new node did not improve the performance.
@@ -251,14 +246,17 @@ class NasFcAnn(object):
 
     def exportModel(self, **kwarg):
         '''function to save model to hdf5 file'''
-        self.bestModel.load_weights(self.checkpoint_filepath, by_name=True, skip_mismatch=True)   #loading best weights
         self.bestModel.save(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name))  #saving best model
     #
 
     def loadModel(self, **kwarg):
         self.bestModel = keras.models.load_model(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name),
-                                                custom_objects={'AUC': AUC()}, compile=False)
-        self.bestModel.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC()])
+                                                custom_objects={'AUC': AUC(), 'TP': TruePositives(),
+                                                                'FP': FalsePositives(), 'TN': TrueNegatives(), 
+                                                                'FN': FalseNegatives()}, compile=False)
+        self.bestModel.compile(loss=self.lossFn, optimizer=self.optMthd, metrics=['accuracy', AUC(name='AUC'), TruePositives(),
+                                                                                  FalsePositives(), TrueNegatives(),
+                                                                                  FalseNegatives()])
         #
 
     def testModel(self, **kwarg):
@@ -282,14 +280,19 @@ class NasFcAnn(object):
     def evaluate(self, **kwarg):
         '''function to evaluate performance of model'''
         #Evaluate performance of the model
-        self.testLoss, self.testAcc, self.testAUC = self.bestModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
+        self.testLoss, self.testAcc, self.testAUC, self.testTP, self.testFP, self.testTN, self.testFN = self.bestModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
         print('Accuracy: {}'.format(self.testAcc))
         print('AUC of ROC: {}'.format(self.testAUC))
+        print('True Positives: {}'.format(self.testTP))
+        print('False Positives: {}'.format(self.testFP))
+        print('True Negatives: {}'.format(self.testTN))
+        print('False Negatives: {}'.format(self.testFN))
     #
 
     def exportTestPerf(self, **kwarg):
         '''function to export test performance to csv file'''
-        testPerformance_dict = {'Accuracy': self.testAcc, 'AUC': self.testAUC}
+        testPerformance_dict = {'Accuracy': self.testAcc, 'AUC': self.testAUC, 'True Positives': self.testTP,
+                                'False Positives': self.testFP, 'True Negatives': self.testTN, 'False Negatives': self.testFN}
 
         with open(self.paths[1]+'/OUTPUT/{}TestPerformance.csv'.format(self.__name), 'w') as file:
             for key in testPerformance_dict.keys():
