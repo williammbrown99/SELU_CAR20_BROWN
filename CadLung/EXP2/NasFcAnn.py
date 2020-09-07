@@ -21,7 +21,7 @@ from keras import callbacks as cB
 from keras import regularizers as rg
 from keras.layers import Dense, Flatten
 from keras.metrics import AUC, TruePositives, FalsePositives, TrueNegatives, FalseNegatives
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 from keras.backend import sigmoid
 from keras.utils.generic_utils import get_custom_objects 
 from keras.layers import Activation
@@ -30,6 +30,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import csv
 
 class NasFcAnn(object):
     '''Attributes'''
@@ -48,14 +50,14 @@ class NasFcAnn(object):
     positiveRegionMin = 0.0001 #{Default: 0.0001}
 
     #Model Parameters
-    learningRate = 0.001
+    learningRate = 0.01
     valSplit = 0.15
     epochs = 100
     batchSize = 32
     METRICS = ['accuracy', AUC(name='AUC'), TruePositives(), FalsePositives(), TrueNegatives(), FalseNegatives()]
-    lossFn = 'binary_crossentropy'
+    lossFn = 'mean_squared_error'#'binary_crossentropy'
     initializer = 'random_normal'
-    optMthd = Adam(learning_rate=learningRate)
+    optMthd = SGD(learning_rate=learningRate)#Adam(learning_rate=learningRate)
     __regRate = 0.001
 
     #Network Architecture Parameters
@@ -90,7 +92,7 @@ class NasFcAnn(object):
     #
 
     def exportParam(self, **kwarg):
-        '''function to export parameters to csv file'''
+        '''function to export parameters to tf file'''
         parameter_dict = {'Name': self.__name, 'Normalization': self.__normalize}
         with open(self.paths[1]+'/MODEL/{}Parameters.tf'.format(self.__name), 'w') as file:
             for key in parameter_dict.keys():
@@ -180,19 +182,19 @@ class NasFcAnn(object):
 
     def setUpModelTrain(self, **kwarg):
         '''function to find the best model structure'''
-        bestAUC = 0 #best AUC score
         if os.path.exists(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name)):
-            self.bestModel = keras.models.load_model(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name),
+            loadedModel = keras.models.load_model(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name),
                                                     custom_objects={'AUC': AUC(), 'TP': TruePositives(),
                                                                     'FP': FalsePositives(), 'TN': TrueNegatives(), 
                                                                     'FN': FalseNegatives()},
                                                     compile=False)
-            self.bestModel.compile(loss=self.lossFn, optimizer=self.optMthd,
+            loadedModel.compile(loss=self.lossFn, optimizer=self.optMthd,
                                    metrics=['accuracy', AUC(name='AUC'), TruePositives(), FalsePositives(),
                                             TrueNegatives(), FalseNegatives()])
 
-            bestLoss, bestAcc, bestAUC, bestTP, bestFP, bestTN, bestFN = self.bestModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
-
+            loadLoss, loadAcc, loadAUC, loadTP, loadFP, loadTN, loadFN = loadedModel.evaluate(self.test_set_all, self.test_label_all, verbose=0)
+        
+        bestAUC = 0 #best AUC score
         #[0 0 0 0] 1st one is for input. number of nodes added to the current layer
         numNodeLastHidden = np.zeros(self.lenMaxNumHidenLayer + 1)
 
@@ -232,6 +234,7 @@ class NasFcAnn(object):
                     print(tmpAUC)
                     bestAUC = tmpAUC
                     self.bestModel = modelTmp
+                    self.modelFitBest = modelFitTmp
                     del modelTmp    #WHY ?
                 else:   #adding a new node did not improve the performance.
                     if numNodeLastHidden[hL] != 1:
@@ -241,6 +244,12 @@ class NasFcAnn(object):
                 #
             #for j
         #for hL
+        #Comparing best Model to saved Model
+        if os.path.exists(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name)):
+            if loadAUC > bestAUC:
+                print('Saved Model Performed Better')
+                self.bestModel = loadedModel
+        #Printing best model structure
         print(self.bestModel.summary())
     #
 
@@ -337,3 +346,27 @@ class NasFcAnn(object):
             for i in train_pred:
                 file.write(str(i)+'\n')
     #
+
+    def exportModelWeights(self, **kwarg):
+        '''function to export Model Weights'''
+        weight_dict = {}
+        numLayers = len(self.bestModel.layers)
+        for layer in range(1, numLayers):   #number of layers
+            #first layer empty, index 0 = weights, index 1 = bias
+            for node in range(0, len(self.bestModel.layers[layer].get_weights()[0][0])): #number of nodes
+                nodeW = self.bestModel.layers[layer].get_weights()[0][:,node]
+                weight_dict['layer{}node{}'.format(layer, node+1)] = nodeW
+        df = pd.DataFrame({key: pd.Series(value) for key, value in weight_dict.items()})
+        df.to_csv('CadLung/EXP2/REPORT/{}Weights.csv'.format(self.__name), encoding='utf-8', index=False)
+    #
+
+    def exportTrainingError(self, **kwarg):
+        '''function to export Training Error'''
+        error = self.modelFitBest.history['loss']
+        val_error = self.modelFitBest.history['val_loss']
+        epochs = range(len(error))   #number of epochs
+
+        error_dict = {'Training Error': error, 'Validation Error': val_error}
+        df = pd.DataFrame({key: pd.Series(value) for key, value in error_dict.items()})
+        df.to_csv('CadLung/EXP2/REPORT/{}Error.csv'.format(self.__name), encoding='utf-8', index=False)
+        #

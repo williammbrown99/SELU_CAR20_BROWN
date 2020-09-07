@@ -26,8 +26,8 @@ yzPlaneInputPath = 'CadLung/INPUT/PLANE/yzPlaneInput.npz'
 
 volumeInputPath = 'CadLung/INPUT/VOLUME/volumeInput.npz'
 
-testModel = NasFcAnn.NasFcAnn(dataPath=DataSet_xy, type='slice',
-                              name='xySlice', regRate=0.001, positiveRegion='y',
+testModel = NasFcAnn.NasFcAnn(dataPath=volumeInputPath, type='volume',
+                              name='volume', regRate=0.1, positiveRegion='n',
                               normalize='zs')
 #!!!must include data path!!!
 #type Options: {Default: 'slice', 'plane', 'volume'}
@@ -53,5 +53,11 @@ testModel.exportChart()
 
 #function to export training predictions to next model
 testModel.exportTrainPred()
+
+#function to export model weights for reporting
+testModel.exportModelWeights()
+
+#function to export training error for reporting
+testModel.exportTrainingError()
 
 print('done!')
