@@ -1,6 +1,6 @@
-Accuracy,0.6913919448852539
-AUC,0.7323175668716431
-True Positives,422.0
-False Positives,177.0
-True Negatives,333.0
-False Negatives,160.0
+Accuracy,0.6538461446762085
+AUC,0.7106966972351074
+True Positives,383.0
+False Positives,179.0
+True Negatives,331.0
+False Negatives,199.0

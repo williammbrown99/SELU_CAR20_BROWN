@@ -25,6 +25,7 @@ from keras.optimizers import Adam, SGD
 from keras.backend import sigmoid
 from keras.utils.generic_utils import get_custom_objects 
 from keras.layers import Activation
+from keras.activations import relu
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
 
@@ -63,10 +64,18 @@ class NasFcAnn(object):
     #Network Architecture Parameters
     #first layer, hidden layers, and output layer. #hidden notes > 1.
     maxNumNodes = (None, 6, 6, 6, 1)
-    #Loading custom swish activation function
+
+    #Activation Functions
+    #Creating custom swish activation functions
     def swish(x, beta = 1): 
         return (x * sigmoid(beta * x))
-    get_custom_objects().update({'swish': swish})
+
+    def customRelu(x):
+        #https://keras.io/api/layers/activations/
+        return relu(x, alpha=0.2, max_value=None, threshold=0)
+
+    get_custom_objects().update({'swish': swish, 'customRelu': customRelu})
+
     #setting activation functions
     activationFn = (None, 'swish', 'swish', 'swish', 'sigmoid')
 
