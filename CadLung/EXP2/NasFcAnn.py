@@ -50,6 +50,9 @@ class NasFcAnn(object):
     __positiveRegion = 'y' #Options: {Default: 'n', 'y'}
     positiveRegionMin = 0.0001 #{Default: 0.0001}
 
+    #Weight Option Parameters
+    weightThreshold = 0.01
+
     #Model Parameters
     learningRate = 0.01
     valSplit = 0.15
@@ -264,6 +267,21 @@ class NasFcAnn(object):
         print(self.bestModel.summary())
     #
 
+    def convertWeights(self, **kwarg):
+        '''function to convert model weights'''
+        numLayers = len(self.bestModel.layers)
+        for layer in range(1, numLayers):
+            #first layer empty, index 0 = weights, index 1 = bias
+            weights = self.bestModel.layers[layer].get_weights()
+            for inputs in range(len(weights[0])):
+                for w in range(len(weights[0][inputs])):
+                    if abs(weights[0][inputs][w]) < self.weightThreshold:
+                        weights[0][inputs][w] = 0
+
+            #setting new weights
+            self.bestModel.layers[layer].set_weights(weights)
+    #
+
     def exportModel(self, **kwarg):
         '''function to save model to hdf5 file'''
         self.bestModel.save(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name))  #saving best model
@@ -381,3 +399,6 @@ class NasFcAnn(object):
         df = pd.DataFrame({key: pd.Series(value) for key, value in error_dict.items()})
         df.to_csv('CadLung/EXP2/REPORT/{}Error.csv'.format(self.__name), encoding='utf-8', index=False)
         #
+
+
+
