@@ -259,6 +259,12 @@ volume.evaluate()
 volume.exportTestPerf()
 volume.exportChart()
 
+#function to export model weights for reporting
+volume.exportModelWeights()
+
+#function to export training error for reporting
+volume.exportTrainingError()
+
 #Printing Execution Time
 print('\nExecution time: {}'.format(datetime.now() - startTime))
 
