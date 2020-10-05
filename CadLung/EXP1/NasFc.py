@@ -46,7 +46,7 @@ NORMALIZE = 'z-score' #Options: {Default: 'none', 'range', 'z-score'}
 VAL_SPLIT = 0.15
 regRate = 0.001
 regFn = rg.l2(regRate)
-EPOCHS = 100
+EPOCHS = 10
 BATCH_SIZE = 32
 METRICS = ['accuracy', AUC(), Recall(), Precision(), FalsePositives(), TrueNegatives()]
 LOSS_F = 'binary_crossentropy'
@@ -163,7 +163,7 @@ else:
     bestModel.compile(loss=LOSS_F, optimizer=OPT_M, metrics=['accuracy', AUC()])#METRICS)
 
     modelFit = bestModel.fit(train_set_all_xy, train_label_all_xy,
-                             epochs=EPOCHS, verbose=0, validation_split=VAL_SPLIT)
+                             epochs=EPOCHS, verbose=1, validation_split=VAL_SPLIT)
 
     bestModel.save(bestModel_filepath)  #saving best model
 

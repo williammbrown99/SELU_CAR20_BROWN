@@ -191,6 +191,7 @@ class NasFcAnn(object):
 
     def setUpModelTrain(self, **kwarg):
         '''function to find the best model structure'''
+        print('Training...')
         if os.path.exists(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name)):
             loadedModel = keras.models.load_model(self.paths[1]+'/MODEL/{}Model.hdf5'.format(self.__name),
                                                     custom_objects={'AUC': AUC(), 'TP': TruePositives(),
@@ -240,7 +241,6 @@ class NasFcAnn(object):
 
                 if tmpAUC > bestAUC:
                     #update the best model and continue adding a node to this layer
-                    print(tmpAUC)
                     bestAUC = tmpAUC
                     self.bestModel = modelTmp
                     self.modelFitBest = modelFitTmp
@@ -258,6 +258,8 @@ class NasFcAnn(object):
             if loadAUC > bestAUC:
                 print('Saved Model Performed Better')
                 self.bestModel = loadedModel
+            else:
+                print('New Model Performed Better')
         #Printing best model structure
         print(self.bestModel.summary())
     #
