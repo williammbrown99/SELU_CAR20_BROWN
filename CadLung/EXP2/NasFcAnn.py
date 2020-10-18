@@ -51,12 +51,12 @@ class NasFcAnn(object):
     positiveRegionMin = 0.0001 #{Default: 0.0001}
 
     #Weight Option Parameters
-    weightThreshold = 0.01
+    weightThreshold = 0.001
 
     #Model Parameters
     learningRate = 0.01
     valSplit = 0.15
-    epochs = 100
+    epochs = 500
     batchSize = 32
     METRICS = ['accuracy', AUC(name='AUC'), TruePositives(), FalsePositives(), TrueNegatives(), FalseNegatives()]
     lossFn = 'mean_squared_error'#'binary_crossentropy'
