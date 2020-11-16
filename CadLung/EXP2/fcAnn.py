@@ -68,6 +68,9 @@ xySlice.exportModelWeights()
 
 #function to export training error for reporting
 xySlice.exportTrainingError()
+
+#function to create covariance and correlation matrices
+xySlice.exportCovCorrCoef()
 #########
 
 #XZ SLICE MODEL
@@ -100,6 +103,9 @@ xzSlice.exportModelWeights()
 
 #function to export training error for reporting
 xzSlice.exportTrainingError()
+
+#function to create covariance and correlation matrices
+xzSlice.exportCovCorrCoef()
 #####
 
 #YZ SLICE MODEL
@@ -132,6 +138,9 @@ yzSlice.exportModelWeights()
 
 #function to export training error for reporting
 yzSlice.exportTrainingError()
+
+#function to create covariance and correlation matrices
+yzSlice.exportCovCorrCoef()
 #####
 
 #CREATING PLANE INPUT DATA

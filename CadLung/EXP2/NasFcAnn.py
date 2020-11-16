@@ -42,7 +42,7 @@ class NasFcAnn(object):
     __type = 'slice'
 
     #Path Parameters    #'INPUT/Voi_Data/', 'EXP1/','EXP1/CHKPNT/'
-    paths = ('CadLung/INPUT/Voi_Data/', 'CadLung/EXP2/', 'CadLung/EXP2/CHKPNT/')
+    paths = ('CadLung/INPUT/Voi_Data/', 'CadLung/EXP2/', 'CadLung/EXP2/CHKPNT/', 'CadLung/EXP2/REPORT/')
     __dataPath = 'none'
 
     #Data Parameters
@@ -51,10 +51,10 @@ class NasFcAnn(object):
     positiveRegionMin = 0.0001 #{Default: 0.0001}
 
     #Weight Option Parameters
-    weightThreshold = 0.001
+    weightThreshold = 0.01 #0.001
 
     #Model Parameters
-    learningRate = 0.01
+    learningRate = 0.01 #Default: 0.01
     valSplit = 0.15
     epochs = 500
     batchSize = 32
@@ -66,11 +66,12 @@ class NasFcAnn(object):
 
     #Network Architecture Parameters
     #first layer, hidden layers, and output layer. #hidden notes > 1.
-    maxNumNodes = (None, 6, 6, 6, 1)
+    maxNumNodes = (None, 5, 5, 5, 1)
 
-    #Activation Functions
+    #Activation Functions and Shape Parameters
     #Creating custom swish activation functions
-    def swish(x, beta = 1): 
+    swishBeta = 0.5 #Default = 1
+    def swish(x, beta = swishBeta):
         return (x * sigmoid(beta * x))
 
     def customRelu(x):
@@ -332,7 +333,7 @@ class NasFcAnn(object):
         testPerformance_dict = {'Accuracy': self.testAcc, 'AUC': self.testAUC, 'True Positives': self.testTP,
                                 'False Positives': self.testFP, 'True Negatives': self.testTN, 'False Negatives': self.testFN}
 
-        with open(self.paths[1]+'/OUTPUT/{}TestPerformance.csv'.format(self.__name), 'w') as file:
+        with open(self.paths[3]+'/PERFORMANCE/{}TestPerformance.csv'.format(self.__name), 'w') as file:
             for key in testPerformance_dict.keys():
                 file.write("%s,%s\n"%(key, testPerformance_dict[key]))
     #
@@ -386,7 +387,7 @@ class NasFcAnn(object):
                 nodeW = self.bestModel.layers[layer].get_weights()[0][:,node]
                 weight_dict['layer{}node{}'.format(layer, node+1)] = nodeW
         df = pd.DataFrame({key: pd.Series(value) for key, value in weight_dict.items()})
-        df.to_csv('CadLung/EXP2/REPORT/{}Weights.csv'.format(self.__name), encoding='utf-8', index=False)
+        df.to_csv(self.paths[3]+'WEIGHTS/{}Weights.csv'.format(self.__name), encoding='utf-8', index=False)
     #
 
     def exportTrainingError(self, **kwarg):
@@ -397,8 +398,32 @@ class NasFcAnn(object):
 
         error_dict = {'Training Error': error, 'Validation Error': val_error}
         df = pd.DataFrame({key: pd.Series(value) for key, value in error_dict.items()})
-        df.to_csv('CadLung/EXP2/REPORT/{}Error.csv'.format(self.__name), encoding='utf-8', index=False)
+        df.to_csv(self.paths[3]+'ERROR/{}Error.csv'.format(self.__name), encoding='utf-8', index=False)
         #
+
+    def exportCovCorrCoef(self, **kwarg):
+        '''function to export Covariance and Correlation Matrices'''
+        weight_matrix = []
+        columnNames = []
+        #Only using first weight layer
+        for node in range(0, len(self.bestModel.layers[1].get_weights()[0][0])): #number of nodes
+            columnNames.append('W_1_{}'.format(node))
+            nodeW = self.bestModel.layers[1].get_weights()[0][:,node]            #getting weights of node
+            weight_matrix.append(nodeW)
+
+        cov_matrix = np.cov(weight_matrix)
+        corrCoef_matrix = np.corrcoef(weight_matrix)
+
+        try:
+            covdf = pd.DataFrame(data=cov_matrix, columns=columnNames, index=columnNames)
+            covdf.to_csv(self.paths[3]+'COVandCORR/{}Cov.csv'.format(self.__name), encoding='utf-8')
+        except:
+            covdf = pd.DataFrame(data=float(cov_matrix), columns=columnNames, index=columnNames)
+            covdf.to_csv(self.paths[3]+'COVandCORR/{}Cov.csv'.format(self.__name), encoding='utf-8')
+
+        corrdf = pd.DataFrame(data=corrCoef_matrix, columns=columnNames, index=columnNames)
+        corrdf.to_csv(self.paths[3]+'COVandCORR/{}CorrCoef.csv'.format(self.__name), encoding='utf-8')
+    #
 
 
 
